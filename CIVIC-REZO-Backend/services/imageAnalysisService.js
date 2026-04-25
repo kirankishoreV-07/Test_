@@ -26,7 +26,7 @@ class ImageAnalysisService {
      */
     static async validateImageWithRoboflow(imageUrl) {
         const ROBOFLOW_API_KEY = process.env.ROBOFLOW_API_KEY || 'YOUR_ROBOFLOW_API_KEY';
-        const ROBOFLOW_MODEL_ENDPOINT = process.env.ROBOFLOW_MODEL_ENDPOINT || 'https://serverless.roboflow.com/infer/workflows/civicrezo/custom-workflow-6';
+        const ROBOFLOW_MODEL_ENDPOINT = process.env.ROBOFLOW_MODEL_ENDPOINT || 'https://serverless.roboflow.com/infer/workflows/civicrezo/custom-workflow-8';
         try {
             const response = await axios.post(
                 ROBOFLOW_MODEL_ENDPOINT,
@@ -57,34 +57,34 @@ class ImageAnalysisService {
             if (raw && Array.isArray(raw.outputs)) {
                 console.log('🔍 Roboflow workflow outputs:', JSON.stringify(raw.outputs, null, 2));
                 for (const outputObj of raw.outputs) {
-                    const output2 = outputObj.output2;
-                    const outputText = outputObj.output;
-
-                    // Model output parsing
-                    if (output2 && Array.isArray(output2.predictions) && output2.predictions.length > 0 && output2.image?.width && output2.image?.height) {
-                        modelConfidence = Math.max(...output2.predictions.map(p => p.confidence || 0));
-                        modelPrediction = output2.predictions[0]?.class || output2.predictions[0]?.label || null;
+                    // Model output parsing (from Object Detection Model)
+                    const modelOutput = outputObj.predictions;
+                    if (modelOutput && Array.isArray(modelOutput.predictions) && modelOutput.predictions.length > 0) {
+                        modelConfidence = Math.max(...modelOutput.predictions.map(p => p.confidence || p.score || 0));
+                        const topPred = modelOutput.predictions.find(p => (p.confidence || p.score || 0) === modelConfidence);
+                        modelPrediction = topPred?.class || topPred?.label || null;
                     }
 
-                    // OpenAI output parsing
-                    if (outputText) {
-                        let openaiObj = null;
+                    // VLM/Gemini output parsing (from vlm_as_detector)
+                    const geminiOutput = outputObj.gemini_predictions;
+                    if (geminiOutput && Array.isArray(geminiOutput.predictions) && geminiOutput.predictions.length > 0) {
+                        openaiConfidence = Math.max(...geminiOutput.predictions.map(p => p.confidence || p.score || 0));
+                        const topGemini = geminiOutput.predictions.find(p => (p.confidence || p.score || 0) === openaiConfidence);
+                        openaiPrediction = topGemini?.class || topGemini?.label || null;
+                    } else if (outputObj.google_gemini_output && typeof outputObj.google_gemini_output === 'string') {
+                        const outputText = outputObj.google_gemini_output;
                         try {
-                            openaiObj = JSON.parse(outputText);
-                        } catch (e) {}
-                        if (openaiObj && typeof openaiObj === 'object' && (openaiObj.confidence !== undefined || openaiObj.confidence !== null)) {
-                            openaiPrediction = openaiObj.prediction || null;
-                            openaiConfidence = Number(openaiObj.confidence);
-                        } else {
-                            const predMatch = outputText.match(/prediction:\s*([^\n,]+)/i);
-                            openaiPrediction = predMatch ? predMatch[1].trim() : null;
-                            let confMatch = outputText.match(/confidence:\s*(\d*\.?\d+)/i);
-                            if (!confMatch) {
-                                confMatch = outputText.match(/,\s*confidence:\s*(\d*\.?\d+)/i);
+                            const openaiObj = JSON.parse(outputText);
+                            if (openaiObj && typeof openaiObj === 'object' && openaiObj.confidence !== undefined) {
+                                openaiPrediction = openaiObj.prediction || null;
+                                openaiConfidence = Number(openaiObj.confidence);
                             }
-                            openaiConfidence = confMatch ? parseFloat(confMatch[1]) : 0;
-                            if (!openaiPrediction && outputText.includes(',')) {
-                                openaiPrediction = outputText.split(',')[0].trim();
+                        } catch (e) {
+                            if (outputText.includes('prediction:')) {
+                                const predMatch = outputText.match(/prediction:\s*([^\n,]+)/i);
+                                openaiPrediction = predMatch ? predMatch[1].trim() : null;
+                                const confMatch = outputText.match(/confidence:\s*(\d*\.?\d+)/i);
+                                openaiConfidence = confMatch ? parseFloat(confMatch[1]) : 0;
                             }
                         }
                     }
@@ -97,7 +97,7 @@ class ImageAnalysisService {
                     console.log('🤖 OpenAI result:', {
                         prediction: openaiPrediction,
                         confidence: openaiConfidence,
-                        outputText
+                        rawOutput: outputObj.google_gemini_output || outputObj.gemini_predictions || null
                     });
 
                     // Decision logic: Use model confidence if >= threshold, otherwise use OpenAI confidence if present
@@ -107,16 +107,22 @@ class ImageAnalysisService {
                         message = `Detected Issue: ${modelPrediction || 'unknown'}`;
                     } else if (openaiConfidence > 0) {
                         confidence = openaiConfidence;
-                        allowUpload = openaiConfidence >= threshold;
-                        if (openaiPrediction === 'None' || openaiConfidence === 0) {
+                        
+                        const isNotValid = openaiPrediction && (
+                            openaiPrediction.toLowerCase() === 'none' ||
+                            openaiPrediction.toLowerCase() === 'not a valid civic issue' ||
+                            openaiPrediction.toLowerCase().includes('not a valid civic issue')
+                        );
+
+                        if (isNotValid || openaiConfidence === 0) {
                             allowUpload = false;
-                            message = 'No valid civic issue detected in image (OpenAI fallback).';
+                            message = 'No valid civic issue detected in image.';
                         } else if (openaiConfidence >= threshold) {
                             allowUpload = true;
                             message = `Detected Issue: ${openaiPrediction || 'unknown'}`;
                         } else {
                             allowUpload = false;
-                            message = `Detected Issue: ${openaiPrediction || 'unknown'}`;
+                            message = `Confidence too low. Detected Issue: ${openaiPrediction || 'unknown'}`;
                         }
                     } else {
                         confidence = 0;
@@ -136,6 +142,9 @@ class ImageAnalysisService {
             return { confidence, modelConfidence, openaiConfidence, allowUpload, message, raw };
         } catch (error) {
             console.error('Roboflow validation error:', error.message);
+            if (error.response && error.response.data) {
+                console.error('Roboflow Error Details:', JSON.stringify(error.response.data, null, 2));
+            }
             return { confidence: 0, modelConfidence: 0, openaiConfidence: 0, allowUpload: false, message: error.message || 'Image validation failed', raw: null };
         }
     }
@@ -172,11 +181,39 @@ class ImageAnalysisService {
                 return analysisResult;
             }
             
+            let hasValidIssue = false;
+            let rejectReason = 'Image analysis completed successfully';
+            
+            if (analysisResult && analysisResult.predictions && analysisResult.predictions.length > 0) {
+                const validPredictions = analysisResult.predictions.filter(p => {
+                    const t = (p.type || '').toLowerCase();
+                    return t !== 'none' && !t.includes('not a valid civic issue');
+                });
+                
+                if (validPredictions.length > 0) {
+                    hasValidIssue = true;
+                } else {
+                    rejectReason = 'No valid civic issue detected in image.';
+                }
+            } else {
+                rejectReason = 'No civic issues found in image.';
+            }
+
+            if (!hasValidIssue) {
+                return {
+                    success: false,
+                    allowUpload: false,
+                    stage: 'workflow_analysis',
+                    error: rejectReason,
+                    suggestions: ['Please upload a clear image of a valid civic issue']
+                };
+            }
+
             return {
                 success: true,
                 allowUpload: true,
                 stage: 'workflow_analysis',
-                reason: 'Image analysis completed successfully',
+                reason: rejectReason,
                 priorityScore: analysisResult?.priorityScore || 75,
                 urgencyLevel: analysisResult?.urgencyLevel || 'medium',
                 detectedIssues: analysisResult?.detectedIssues || ['civic_issue_detected'],
@@ -314,64 +351,30 @@ class ImageAnalysisService {
                 return this.getFallbackAnalysis();
             }
 
+            const ROBOFLOW_MODEL_ENDPOINT = process.env.ROBOFLOW_MODEL_ENDPOINT || `https://serverless.roboflow.com/infer/workflows/${this.workspaceName}/${this.workflowId}`;
             const imageBuffer = fs.readFileSync(imagePath);
-            const FormData = require('form-data');
-            const form = new FormData();
+            const base64Image = imageBuffer.toString('base64');
             
-            form.append('image', imageBuffer, {
-                filename: 'civic_issue.jpg',
-                contentType: 'image/jpeg'
-            });
-
-            const possibleUrls = [
-                `https://detect.roboflow.com/${this.workspaceName}/${this.workflowId}?api_key=${this.apiKey}`,
-                `https://api.roboflow.com/${this.workspaceName}/${this.workflowId}?api_key=${this.apiKey}`,
-                `${this.apiUrl}/${this.workspaceName}/${this.workflowId}?api_key=${this.apiKey}`,
-                `${this.apiUrl}/workflows/${this.workspaceName}/${this.workflowId}`
-            ];
+            console.log(`🚀 Sending base64 image to ${ROBOFLOW_MODEL_ENDPOINT}`);
             
-            let response = null;
-            let successfulUrl = null;
-            
-            for (let i = 0; i < possibleUrls.length; i++) {
-                const workflowUrl = possibleUrls[i];
-                console.log(`🚀 Trying endpoint ${i + 1}/${possibleUrls.length}: ${workflowUrl}`);
-                
-                try {
-                    const attemptResponse = await axios.post(workflowUrl, form, {
-                        headers: {
-                            ...form.getHeaders(),
-                            'Authorization': `Bearer ${this.apiKey}`,
-                            'User-Agent': 'CivicRezo/1.0 (Node.js HTTP Client)'
-                        },
-                        timeout: 8000,
-                        maxContentLength: Infinity,
-                        maxBodyLength: Infinity
-                    });
-                    
-                    console.log(`✅ Endpoint ${i + 1} succeeded!`);
-                    response = attemptResponse;
-                    successfulUrl = workflowUrl;
-                    break;
-                    
-                } catch (urlError) {
-                    console.log(`❌ Endpoint ${i + 1} failed:`, {
-                        status: urlError.response?.status,
-                        statusText: urlError.response?.statusText,
-                        error: urlError.response?.data?.detail || urlError.message
-                    });
-                    
-                    if (i === possibleUrls.length - 1) {
-                        throw urlError;
+            const response = await axios.post(
+                ROBOFLOW_MODEL_ENDPOINT,
+                {
+                    api_key: this.apiKey,
+                    inputs: {
+                        image: { type: 'base64', value: base64Image }
                     }
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'CivicRezo/1.0 (Node.js HTTP Client)'
+                    },
+                    timeout: 15000
                 }
-            }
+            );
             
-            if (!response) {
-                throw new Error('All endpoint formats failed');
-            }
-            
-            console.log(`🎯 Successful endpoint: ${successfulUrl}`);
+            console.log(`✅ Endpoint succeeded!`);
             console.log(`🔍 Response status: ${response.status}`);
             console.log(`🔍 Response data:`, JSON.stringify(response.data, null, 2));
 
@@ -457,12 +460,30 @@ class ImageAnalysisService {
                 console.log(`📊 Found ${responseData.predictions.length} predictions`);
                 predictions = responseData.predictions.map(pred => this.formatPrediction(pred));
                 hasIssues = predictions.length > 0;
+            } else if (Array.isArray(responseData.outputs)) {
+                console.log('📊 Processing workflow outputs array...');
+                for (const outputObj of responseData.outputs) {
+                    for (const key of Object.keys(outputObj)) {
+                        const val = outputObj[key];
+                        if (val && Array.isArray(val.predictions)) {
+                            const outputPredictions = val.predictions.map(pred => this.formatPrediction(pred));
+                            predictions.push(...outputPredictions);
+                            hasIssues = true;
+                        } else if (val && Array.isArray(val)) {
+                            // Sometimes predictions are directly the array
+                            try {
+                                const outputPredictions = val.map(pred => this.formatPrediction(pred));
+                                predictions.push(...outputPredictions);
+                                hasIssues = true;
+                            } catch(e) {}
+                        }
+                    }
+                }
             } else if (responseData.outputs) {
-                console.log('📊 Processing workflow outputs...');
+                console.log('📊 Processing workflow outputs object...');
                 for (const [outputKey, outputValue] of Object.entries(responseData.outputs)) {
                     console.log(`   Processing output: ${outputKey}`);
-                    
-                    if (outputValue && outputValue.predictions) {
+                    if (outputValue && Array.isArray(outputValue.predictions)) {
                         const outputPredictions = outputValue.predictions.map(pred => this.formatPrediction(pred));
                         predictions.push(...outputPredictions);
                         hasIssues = true;

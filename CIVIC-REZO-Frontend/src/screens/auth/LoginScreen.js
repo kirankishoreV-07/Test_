@@ -11,8 +11,10 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient, makeApiCall } from '../../../config/supabase';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const LoginScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -28,7 +30,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!formData.email || !formData.password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('Error'), t('Please fill in all fields'));
       return;
     }
 
@@ -44,7 +46,7 @@ const LoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem('authToken', response.data.token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
 
-        Alert.alert('Success', 'Login successful!');
+        Alert.alert(t('Success'), t('Login successful!'));
         
         // Navigate based on user type
         if (response.data.user.userType === 'admin') {
@@ -54,7 +56,7 @@ const LoginScreen = ({ navigation }) => {
         }
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Login failed');
+      Alert.alert(t('Error'), error.message || t('Login failed'));
     } finally {
       setLoading(false);
     }
@@ -63,13 +65,13 @@ const LoginScreen = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>CivicStack Login</Text>
-        <Text style={styles.subtitle}>Sign in to your account</Text>
+        <Text style={styles.title}>{t('CivicStack Login')}</Text>
+        <Text style={styles.subtitle}>{t('Sign in to your account')}</Text>
 
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder={t('Email')}
             value={formData.email}
             onChangeText={(value) => handleInputChange('email', value)}
             keyboardType="email-address"
@@ -78,7 +80,7 @@ const LoginScreen = ({ navigation }) => {
 
           <TextInput
             style={styles.input}
-            placeholder="Password"
+            placeholder={t('Password')}
             value={formData.password}
             onChangeText={(value) => handleInputChange('password', value)}
             secureTextEntry
@@ -92,7 +94,7 @@ const LoginScreen = ({ navigation }) => {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Login</Text>
+              <Text style={styles.buttonText}>{t('Login')}</Text>
             )}
           </TouchableOpacity>
 
@@ -101,7 +103,7 @@ const LoginScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Signup')}
           >
             <Text style={styles.linkText}>
-              Don't have an account? Sign up
+              {t("Don't have an account? Sign up")}
             </Text>
           </TouchableOpacity>
         </View>

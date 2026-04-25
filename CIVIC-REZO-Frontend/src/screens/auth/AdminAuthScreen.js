@@ -7,14 +7,16 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const AdminAuthScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const features = [
-    { icon: 'clipboard-outline', text: 'Manage all citizen complaints' },
-    { icon: 'flash-outline', text: 'Priority queue management' },
-    { icon: 'people-outline', text: 'User management system' },
-    { icon: 'analytics-outline', text: 'Analytics and reporting' },
-    { icon: 'map-outline', text: 'City-wide complaint heatmaps' },
+    { icon: 'clipboard-outline', text: t('auth.admin.features.manageComplaints') },
+    { icon: 'flash-outline', text: t('auth.admin.features.priorityQueue') },
+    { icon: 'people-outline', text: t('auth.admin.features.userManagement') },
+    { icon: 'analytics-outline', text: t('auth.admin.features.analytics') },
+    { icon: 'map-outline', text: t('auth.admin.features.heatmaps') },
   ];
 
   return (
@@ -32,9 +34,9 @@ const AdminAuthScreen = ({ navigation }) => {
         <View style={styles.iconBox}>
           <Ionicons name="shield-checkmark-outline" size={32} color="#1A1A1A" />
         </View>
-        <Text style={styles.title}>Admin Portal</Text>
+        <Text style={styles.title}>{t('auth.admin.title')}</Text>
         <Text style={styles.subtitle}>
-          Manage and oversee civic operations efficiently
+          {t('auth.admin.subtitle')}
         </Text>
       </View>
 
@@ -44,7 +46,7 @@ const AdminAuthScreen = ({ navigation }) => {
           onPress={() => navigation.navigate('AdminLogin')}
           activeOpacity={0.8}
         >
-          <Text style={styles.primaryButtonText}>ADMIN LOGIN</Text>
+          <Text style={styles.primaryButtonText}>{t('auth.admin.adminLogin')}</Text>
           <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
         </TouchableOpacity>
 
@@ -53,7 +55,7 @@ const AdminAuthScreen = ({ navigation }) => {
           onPress={() => navigation.navigate('AdminSignup')}
           activeOpacity={0.8}
         >
-          <Text style={styles.secondaryButtonText}>REGISTER AS ADMIN</Text>
+          <Text style={styles.secondaryButtonText}>{t('auth.admin.registerAsAdmin')}</Text>
           <Ionicons name="arrow-forward" size={18} color="#1A1A1A" />
         </TouchableOpacity>
       </View>
@@ -62,12 +64,12 @@ const AdminAuthScreen = ({ navigation }) => {
       <View style={styles.noticeCard}>
         <Ionicons name="information-circle-outline" size={18} color="#1A1A1A" />
         <Text style={styles.noticeText}>
-          Admin accounts require approval from system administrators
+          {t('auth.admin.notice')}
         </Text>
       </View>
 
       <View style={styles.featuresCard}>
-        <Text style={styles.featuresTitle}>ADMIN CAPABILITIES</Text>
+        <Text style={styles.featuresTitle}>{t('auth.admin.capabilities')}</Text>
         {features.map((item, index) => (
           <View key={index} style={styles.featureItem}>
             <Ionicons name={item.icon} size={18} color="#6B7280" />

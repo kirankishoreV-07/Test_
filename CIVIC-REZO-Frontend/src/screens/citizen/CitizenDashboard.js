@@ -12,11 +12,17 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FloatingChatbotButton from '../../components/FloatingChatbotButton';
+import { useTranslation } from '../../i18n/useTranslation';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 const CitizenDashboard = ({ navigation }) => {
+  const { t } = useTranslation();
   const [userData, setUserData] = useState(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     loadUserData();
@@ -35,12 +41,12 @@ const CitizenDashboard = ({ navigation }) => {
 
   const handleLogout = async () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('dashboard.logoutConfirmTitle'),
+      t('dashboard.logoutConfirmMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Logout',
+          text: t('common.logout'),
           style: 'destructive',
           onPress: async () => {
             await AsyncStorage.multiRemove(['authToken', 'userData']);
@@ -54,39 +60,45 @@ const CitizenDashboard = ({ navigation }) => {
   const actionItems = [
     {
       icon: 'add-circle-outline',
-      title: 'New Report',
-      subtitle: 'Submit civic concern',
+      title: t('dashboard.actions.newReport'),
+      subtitle: t('dashboard.actions.newReportSub'),
       onPress: () => navigation.navigate('SubmitComplaint'),
     },
     {
       icon: 'documents-outline',
-      title: 'My Reports',
-      subtitle: 'Track progress',
+      title: t('dashboard.actions.myReports'),
+      subtitle: t('dashboard.actions.myReportsSub'),
       onPress: () => navigation.reset({ index: 0, routes: [{ name: 'InstagramFeed' }] }),
     },
     {
       icon: 'map-outline',
-      title: 'Complaint Map',
-      subtitle: 'View area status',
+      title: t('dashboard.actions.complaintMap'),
+      subtitle: t('dashboard.actions.complaintMapSub'),
       onPress: () => navigation.navigate('ComplaintMap'),
     },
     {
       icon: 'bar-chart-outline',
-      title: 'Transparency',
-      subtitle: 'Impact statistics',
+      title: t('dashboard.actions.transparency'),
+      subtitle: t('dashboard.actions.transparencySub'),
       onPress: () => navigation.navigate('CitizenTransparency'),
     },
     {
       icon: 'chatbubbles-outline',
-      title: 'AI Assistant',
-      subtitle: 'Get instant help',
+      title: t('dashboard.actions.aiAssistant'),
+      subtitle: t('dashboard.actions.aiAssistantSub'),
       onPress: () => navigation.navigate('CivicChatbot'),
     },
     {
       icon: 'mic-outline',
-      title: 'Voice Report',
-      subtitle: 'Speak your concern',
+      title: t('dashboard.actions.voiceReport'),
+      subtitle: t('dashboard.actions.voiceReportSub'),
       onPress: () => navigation.navigate('SubmitComplaint', { useVoice: true }),
+    },
+    {
+      icon: 'trophy-outline',
+      title: 'Volunteer Leaderboard',
+      subtitle: 'See top Rotary contributors',
+      onPress: () => navigation.navigate('Leaderboard'),
     },
   ];
 
@@ -98,9 +110,10 @@ const CitizenDashboard = ({ navigation }) => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.brandMark}>CIVIC-REZO</Text>
-          <Text style={styles.brandSub}>Institutional Portal</Text>
+          <Text style={styles.brandSub}>{t('app.institutionalPortal')}</Text>
         </View>
         <View style={styles.headerRight}>
+          <LanguageSwitcher compact />
           <TouchableOpacity style={styles.headerIcon}>
             <Ionicons name="notifications-outline" size={22} color="#374151" />
           </TouchableOpacity>
@@ -123,10 +136,10 @@ const CitizenDashboard = ({ navigation }) => {
         {/* Welcome section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeTitle}>
-            Dashboard
+            {t('dashboard.title')}
           </Text>
           <Text style={styles.welcomeSub}>
-            Welcome back, {userData?.fullName || 'Citizen'}
+            {t('dashboard.welcomeBack', { name: userData?.fullName || 'Citizen' })}
           </Text>
         </View>
 
@@ -134,24 +147,24 @@ const CitizenDashboard = ({ navigation }) => {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>0</Text>
-            <Text style={styles.statLabel}>PENDING</Text>
+            <Text style={styles.statLabel}>{t('dashboard.stats.pending')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>0</Text>
-            <Text style={styles.statLabel}>RESOLVED</Text>
+            <Text style={styles.statLabel}>{t('dashboard.stats.resolved')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>0</Text>
-            <Text style={styles.statLabel}>IMPACT</Text>
+            <Text style={styles.statLabel}>{t('dashboard.stats.impact')}</Text>
           </View>
         </View>
 
         {/* Actions grid */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <Text style={styles.sectionSub}>Report and track civic issues</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.quickActions')}</Text>
+          <Text style={styles.sectionSub}>{t('dashboard.quickActionsSub')}</Text>
         </View>
 
         <View style={styles.actionsGrid}>
@@ -173,14 +186,14 @@ const CitizenDashboard = ({ navigation }) => {
 
         {/* Profile card */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Profile</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.profile')}</Text>
         </View>
 
         <View style={styles.profileCard}>
           <View style={styles.profileRow}>
             <View style={styles.profileLabelRow}>
               <Ionicons name="mail-outline" size={18} color="#6B7280" />
-              <Text style={styles.profileLabel}>Email</Text>
+              <Text style={styles.profileLabel}>{t('dashboard.email')}</Text>
             </View>
             <Text style={styles.profileValue}>{userData?.email || '—'}</Text>
           </View>
@@ -188,7 +201,7 @@ const CitizenDashboard = ({ navigation }) => {
           <View style={styles.profileRow}>
             <View style={styles.profileLabelRow}>
               <Ionicons name="call-outline" size={18} color="#6B7280" />
-              <Text style={styles.profileLabel}>Phone</Text>
+              <Text style={styles.profileLabel}>{t('dashboard.phone')}</Text>
             </View>
             <Text style={styles.profileValue}>{userData?.phoneNumber || '—'}</Text>
           </View>
@@ -196,11 +209,11 @@ const CitizenDashboard = ({ navigation }) => {
           <View style={styles.profileRow}>
             <View style={styles.profileLabelRow}>
               <Ionicons name="shield-checkmark-outline" size={18} color="#6B7280" />
-              <Text style={styles.profileLabel}>Status</Text>
+              <Text style={styles.profileLabel}>{t('dashboard.status')}</Text>
             </View>
             <View style={styles.statusBadge}>
               <View style={styles.statusDot} />
-              <Text style={styles.statusText}>Active Citizen</Text>
+              <Text style={styles.statusText}>{t('common.activeCitizen')}</Text>
             </View>
           </View>
         </View>
@@ -208,20 +221,70 @@ const CitizenDashboard = ({ navigation }) => {
         {/* Logout */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={18} color="#1A1A1A" />
-          <Text style={styles.logoutText}>Sign Out</Text>
+          <Text style={styles.logoutText}>{t('common.signOut')}</Text>
         </TouchableOpacity>
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Floating chatbot button */}
-      <TouchableOpacity
-        style={styles.chatFab}
-        onPress={() => navigation.navigate('CivicChatbot')}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="chatbubble-ellipses" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
+      {/* Modern bottom tab bar with Leaderboard */}
+      <View style={[styles.modernBottomTabBar, { paddingBottom: insets.bottom || 12 }]}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,1)']}
+          style={styles.tabBarGradient}
+        >
+          <TouchableOpacity 
+            style={styles.modernTabButton}
+            onPress={() => {/* Already on dashboard */}}
+            activeOpacity={0.8}
+          >
+            <View style={styles.activeTabContainer}>
+              <Ionicons name="home" size={22} color="#1A1A1A" />
+              <Text style={styles.activeTabText}>Home</Text>
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.modernTabButton}
+            onPress={() => navigation.navigate('InstagramFeed')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="documents-outline" size={22} color="#9CA3AF" />
+            <Text style={styles.tabText}>Feed</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.modernTabButton}
+            onPress={() => navigation.navigate('SubmitComplaint')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#1A1A1A', '#000000']}
+              style={styles.modernAddButtonContainer}
+            >
+              <Ionicons name="add" size={24} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.modernTabButton}
+            onPress={() => navigation.navigate('Leaderboard')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="trophy-outline" size={22} color="#9CA3AF" />
+            <Text style={styles.tabText}>Top 10</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.modernTabButton}
+            onPress={() => navigation.navigate('PersonalReports')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="person-outline" size={22} color="#9CA3AF" />
+            <Text style={styles.tabText}>Profile</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      </View>
     </View>
   );
 };
@@ -452,22 +515,69 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1A1A1A',
   },
-  chatFab: {
+  // Modern Bottom Tab Bar
+  modernBottomTabBar: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 20,
     position: 'absolute',
-    bottom: 100,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#1A1A1A',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  tabBarGradient: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  modernTabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  activeTabContainer: {
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+  },
+  activeTabText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginTop: 2,
+    letterSpacing: 0.3,
+  },
+  tabText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  modernAddButtonContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#000000',
+    shadowColor: '#1A1A1A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
-    zIndex: 1000,
+    elevation: 8,
   },
 });
 

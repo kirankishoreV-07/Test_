@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient, makeApiCall } from '../../../config/supabase';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const AdminSignupScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -37,32 +39,32 @@ const AdminSignupScreen = ({ navigation }) => {
   const validateForm = () => {
     if (!formData.email || !formData.password || !formData.fullName || 
         !formData.phoneNumber || !formData.department || !formData.employeeId) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert(t('common.error'), t('auth.errors.fillRequiredFields'));
       return false;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert(t('common.error'), t('auth.errors.passwordMismatch'));
       return false;
     }
 
     if (formData.password.length < 8) {
-      Alert.alert('Error', 'Admin password must be at least 8 characters long');
+      Alert.alert(t('common.error'), t('auth.errors.adminPasswordMin8'));
       return false;
     }
 
     if (!formData.email.includes('@')) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      Alert.alert(t('common.error'), t('auth.errors.validEmail'));
       return false;
     }
 
     if (!formData.email.includes('gov') && !formData.email.includes('civic')) {
       Alert.alert(
-        'Warning', 
-        'Admin accounts typically use government or organizational email addresses. Continue anyway?',
+        t('auth.common.warningTitle'), 
+        t('auth.admin.govEmailWarning'),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Continue', onPress: () => null }
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('auth.common.continue'), onPress: () => null }
         ]
       );
     }
@@ -74,12 +76,12 @@ const AdminSignupScreen = ({ navigation }) => {
     if (!validateForm()) return;
 
     Alert.alert(
-      'Admin Registration',
-      'Admin accounts require approval. Your registration will be reviewed by system administrators.',
+      t('auth.admin.registrationTitle'),
+      t('auth.admin.registrationApprovalNotice'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Proceed', 
+          text: t('auth.common.proceed'), 
           onPress: async () => {
             setLoading(true);
             try {
@@ -99,18 +101,18 @@ const AdminSignupScreen = ({ navigation }) => {
 
               if (response.success) {
                 Alert.alert(
-                  'Registration Submitted',
-                  'Your admin registration has been submitted for approval.',
+                  t('auth.admin.registrationSubmittedTitle'),
+                  t('auth.admin.registrationSubmittedBody'),
                   [
                     {
-                      text: 'OK',
+                      text: t('common.ok'),
                       onPress: () => navigation.navigate('AdminLogin'),
                     },
                   ]
                 );
               }
             } catch (error) {
-              Alert.alert('Error', error.message || 'Registration failed');
+              Alert.alert(t('common.error'), error.message || t('auth.errors.registrationFailed'));
             } finally {
               setLoading(false);
             }
@@ -121,11 +123,11 @@ const AdminSignupScreen = ({ navigation }) => {
   };
 
   const fields = [
-    { key: 'fullName', label: 'FULL NAME', placeholder: 'Enter full name', icon: 'person-outline', required: true },
-    { key: 'email', label: 'OFFICIAL EMAIL', placeholder: 'Enter email', icon: 'mail-outline', keyboard: 'email-address', required: true },
-    { key: 'department', label: 'DEPARTMENT', placeholder: 'Enter department', icon: 'business-outline', required: true },
-    { key: 'employeeId', label: 'EMPLOYEE ID', placeholder: 'Enter employee ID', icon: 'card-outline', required: true },
-    { key: 'phoneNumber', label: 'PHONE NUMBER', placeholder: 'Enter phone', icon: 'call-outline', keyboard: 'phone-pad', required: true },
+    { key: 'fullName', label: t('auth.common.fullName').toUpperCase(), placeholder: t('auth.common.enterFullName'), icon: 'person-outline', required: true },
+    { key: 'email', label: t('auth.admin.officialEmail').toUpperCase(), placeholder: t('auth.common.enterEmail'), icon: 'mail-outline', keyboard: 'email-address', required: true },
+    { key: 'department', label: t('auth.admin.department').toUpperCase(), placeholder: t('auth.admin.enterDepartment'), icon: 'business-outline', required: true },
+    { key: 'employeeId', label: t('auth.admin.employeeId').toUpperCase(), placeholder: t('auth.admin.enterEmployeeId'), icon: 'card-outline', required: true },
+    { key: 'phoneNumber', label: t('auth.common.phoneNumber').toUpperCase(), placeholder: t('auth.common.enterPhoneNumber'), icon: 'call-outline', keyboard: 'phone-pad', required: true },
   ];
 
   return (
@@ -144,15 +146,15 @@ const AdminSignupScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.title}>Admin Registration</Text>
-          <Text style={styles.subtitle}>Request administrator access to the platform</Text>
+          <Text style={styles.title}>{t('auth.admin.registrationTitle')}</Text>
+          <Text style={styles.subtitle}>{t('auth.admin.requestAccessSubtitle')}</Text>
         </View>
 
         {/* Warning */}
         <View style={styles.noticeCard}>
           <Ionicons name="information-circle-outline" size={18} color="#1A1A1A" />
           <Text style={styles.noticeText}>
-            Admin registrations require approval. Please provide accurate information for verification.
+            {t('auth.admin.registrationApprovalNotice')}
           </Text>
         </View>
 
@@ -179,12 +181,12 @@ const AdminSignupScreen = ({ navigation }) => {
 
         {/* Password */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>PASSWORD <Text style={styles.required}>*</Text></Text>
+          <Text style={styles.fieldLabel}>{t('auth.common.password').toUpperCase()} <Text style={styles.required}>*</Text></Text>
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed-outline" size={18} color="#9CA3AF" />
             <TextInput
               style={styles.input}
-              placeholder="Min 8 characters"
+              placeholder={t('auth.common.min8Characters')}
               value={formData.password}
               onChangeText={(value) => handleInputChange('password', value)}
               secureTextEntry={!showPassword}
@@ -197,12 +199,12 @@ const AdminSignupScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>CONFIRM PASSWORD <Text style={styles.required}>*</Text></Text>
+          <Text style={styles.fieldLabel}>{t('auth.common.confirmPassword').toUpperCase()} <Text style={styles.required}>*</Text></Text>
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed-outline" size={18} color="#9CA3AF" />
             <TextInput
               style={styles.input}
-              placeholder="Re-enter password"
+              placeholder={t('auth.common.reenterPassword')}
               value={formData.confirmPassword}
               onChangeText={(value) => handleInputChange('confirmPassword', value)}
               secureTextEntry={!showConfirmPassword}
@@ -216,11 +218,11 @@ const AdminSignupScreen = ({ navigation }) => {
 
         {/* Requirements */}
         <View style={styles.requirementsCard}>
-          <Text style={styles.requirementsTitle}>REQUIRED FOR ADMIN ACCESS</Text>
-          <Text style={styles.requirementItem}>Valid government/organizational email</Text>
-          <Text style={styles.requirementItem}>Official department information</Text>
-          <Text style={styles.requirementItem}>Employee identification</Text>
-          <Text style={styles.requirementItem}>Verification by system admin</Text>
+          <Text style={styles.requirementsTitle}>{t('auth.admin.requiredForAccess').toUpperCase()}</Text>
+          <Text style={styles.requirementItem}>{t('auth.admin.reqGovEmail')}</Text>
+          <Text style={styles.requirementItem}>{t('auth.admin.reqDepartmentInfo')}</Text>
+          <Text style={styles.requirementItem}>{t('auth.admin.reqEmployeeId')}</Text>
+          <Text style={styles.requirementItem}>{t('auth.admin.reqVerification')}</Text>
         </View>
 
         {/* Submit */}
@@ -234,16 +236,16 @@ const AdminSignupScreen = ({ navigation }) => {
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <View style={styles.submitContent}>
-              <Text style={styles.submitText}>SUBMIT REGISTRATION</Text>
+              <Text style={styles.submitText}>{t('auth.admin.submitRegistration').toUpperCase()}</Text>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             </View>
           )}
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have admin access? </Text>
+          <Text style={styles.footerText}>{t('auth.admin.alreadyHaveAdminAccess')} </Text>
           <TouchableOpacity onPress={() => navigation.navigate('AdminLogin')}>
-            <Text style={styles.footerLink}>Login here</Text>
+            <Text style={styles.footerLink}>{t('auth.common.loginHere')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

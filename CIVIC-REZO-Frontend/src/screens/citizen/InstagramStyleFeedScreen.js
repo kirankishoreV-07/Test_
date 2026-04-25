@@ -1325,6 +1325,15 @@ const InstagramStyleFeedScreen = ({ navigation }) => {
           
           <TouchableOpacity 
             style={styles.modernTabButton}
+            onPress={() => navigation.navigate('Leaderboard')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="trophy-outline" size={22} color="#9CA3AF" />
+            <Text style={styles.tabText}>Top 10</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.modernTabButton}
             onPress={() => navigation.navigate('CitizenTransparency')}
             activeOpacity={0.8}
           >

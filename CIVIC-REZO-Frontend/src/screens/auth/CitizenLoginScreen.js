@@ -14,10 +14,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient, makeApiCall } from '../../../config/supabase';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const { width } = Dimensions.get('window');
 
 const CitizenLoginScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -35,7 +37,7 @@ const CitizenLoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!formData.email || !formData.password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('common.error'), t('auth.errors.fillAllFields'));
       return;
     }
 
@@ -49,7 +51,7 @@ const CitizenLoginScreen = ({ navigation }) => {
       if (response.success) {
         // Verify user type is citizen
         if (response.data.user.userType !== 'citizen') {
-          Alert.alert('Access Denied', 'This is the citizen portal. Please use the admin portal to login as an administrator.');
+          Alert.alert(t('auth.errors.accessDeniedTitle'), t('auth.errors.citizenPortalOnly'));
           setLoading(false);
           return;
         }
@@ -58,11 +60,11 @@ const CitizenLoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem('authToken', response.data.token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
 
-        Alert.alert('Success', 'Login successful!');
+        Alert.alert(t('auth.common.successTitle'), t('auth.common.loginSuccess'));
         navigation.replace('InstagramFeed');
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Login failed');
+      Alert.alert(t('common.error'), error.message || t('auth.errors.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -85,10 +87,10 @@ const CitizenLoginScreen = ({ navigation }) => {
           <Text style={styles.brandName}>CIVIC{'\n'}REZO</Text>
           <View style={styles.brandDivider} />
           <View style={styles.accessBadge}>
-            <Text style={styles.accessTitle}>Secure Citizen Access</Text>
+            <Text style={styles.accessTitle}>{t('auth.citizen.secureAccess')}</Text>
           </View>
           <Text style={styles.accessDescription}>
-            Institutional portal for secure identity verification and civic engagement. Restricted access.
+            {t('auth.citizen.secureAccessDescription')}
           </Text>
         </View>
       </View>
@@ -106,7 +108,7 @@ const CitizenLoginScreen = ({ navigation }) => {
             style={[styles.tab, activeTab === 'login' && styles.activeTab]}
             onPress={() => setActiveTab('login')}
           >
-            <Text style={[styles.tabText, activeTab === 'login' && styles.activeTabText]}>LOGIN</Text>
+            <Text style={[styles.tabText, activeTab === 'login' && styles.activeTabText]}>{t('auth.common.login').toUpperCase()}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'register' && styles.activeTab]}
@@ -115,17 +117,17 @@ const CitizenLoginScreen = ({ navigation }) => {
               navigation.navigate('CitizenSignup');
             }}
           >
-            <Text style={[styles.tabText, activeTab === 'register' && styles.activeTabText]}>REGISTER</Text>
+            <Text style={[styles.tabText, activeTab === 'register' && styles.activeTabText]}>{t('auth.common.register').toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Form fields */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>CITIZEN ID / EMAIL</Text>
+          <Text style={styles.fieldLabel}>{t('auth.citizen.citizenIdOrEmail').toUpperCase()}</Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Enter your credentials"
+              placeholder={t('auth.citizen.enterCredentials')}
               value={formData.email}
               onChangeText={(value) => handleInputChange('email', value)}
               keyboardType="email-address"
@@ -137,7 +139,7 @@ const CitizenLoginScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>ACCESS KEY</Text>
+          <Text style={styles.fieldLabel}>{t('auth.citizen.accessKey').toUpperCase()}</Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -161,12 +163,12 @@ const CitizenLoginScreen = ({ navigation }) => {
         <View style={styles.optionsRow}>
           <View style={styles.checkRow}>
             <View style={styles.checkbox} />
-            <Text style={styles.optionText}>Maintain Session</Text>
+            <Text style={styles.optionText}>{t('auth.citizen.maintainSession')}</Text>
           </View>
           <TouchableOpacity
-            onPress={() => Alert.alert('Password Reset', 'Contact your administrator for key recovery.')}
+            onPress={() => Alert.alert(t('auth.citizen.passwordResetTitle'), t('auth.citizen.passwordResetBody'))}
           >
-            <Text style={styles.recoverText}>RECOVER KEY</Text>
+            <Text style={styles.recoverText}>{t('auth.citizen.recoverKey').toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
 
@@ -181,7 +183,7 @@ const CitizenLoginScreen = ({ navigation }) => {
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <View style={styles.submitContent}>
-              <Text style={styles.submitText}>AUTHENTICATE SESSION</Text>
+              <Text style={styles.submitText}>{t('auth.citizen.authenticateSession').toUpperCase()}</Text>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             </View>
           )}
@@ -190,14 +192,14 @@ const CitizenLoginScreen = ({ navigation }) => {
         {/* Security notice */}
         <View style={styles.securityNotice}>
           <Ionicons name="shield-checkmark-outline" size={14} color="#9CA3AF" />
-          <Text style={styles.securityText}>Protected by Civic Protocol 256-bit encryption</Text>
+          <Text style={styles.securityText}>{t('auth.citizen.securityNotice')}</Text>
         </View>
 
         {/* Footer link */}
         <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Need admin access? </Text>
+          <Text style={styles.footerText}>{t('auth.citizen.needAdminAccess')} </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Welcome')}>
-            <Text style={styles.footerLink}>Switch Portal</Text>
+            <Text style={styles.footerLink}>{t('auth.common.switchPortal')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

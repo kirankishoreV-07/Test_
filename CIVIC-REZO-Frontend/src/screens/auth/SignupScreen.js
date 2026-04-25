@@ -12,8 +12,10 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient, makeApiCall } from '../../../config/supabase';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const SignupScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -35,17 +37,17 @@ const SignupScreen = ({ navigation }) => {
   const handleSignup = async () => {
     // Validation
     if (!formData.fullName || !formData.email || !formData.phoneNumber || !formData.password) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert(t('Error'), t('Please fill in all required fields'));
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert(t('Error'), t('Passwords do not match'));
       return;
     }
 
     if (formData.password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+      Alert.alert(t('Error'), t('Password must be at least 6 characters long'));
       return;
     }
 
@@ -70,7 +72,7 @@ const SignupScreen = ({ navigation }) => {
         await AsyncStorage.setItem('authToken', response.data.token);
         await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
 
-        Alert.alert('Success', 'Account created successfully!');
+        Alert.alert(t('Success'), t('Account created successfully!'));
         
         // Navigate based on user type
         if (response.data.user.userType === 'admin') {
@@ -80,7 +82,7 @@ const SignupScreen = ({ navigation }) => {
         }
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Signup failed');
+      Alert.alert(t('Error'), error.message || t('Signup failed'));
     } finally {
       setLoading(false);
     }
@@ -89,20 +91,20 @@ const SignupScreen = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Join CivicStack Community</Text>
+        <Text style={styles.title}>{t('Create Account')}</Text>
+        <Text style={styles.subtitle}>{t('Join CivicStack Community')}</Text>
 
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="Full Name *"
+            placeholder={t('Full Name *')}
             value={formData.fullName}
             onChangeText={(value) => handleInputChange('fullName', value)}
           />
 
           <TextInput
             style={styles.input}
-            placeholder="Email *"
+            placeholder={t('Email *')}
             value={formData.email}
             onChangeText={(value) => handleInputChange('email', value)}
             keyboardType="email-address"
@@ -111,27 +113,27 @@ const SignupScreen = ({ navigation }) => {
 
           <TextInput
             style={styles.input}
-            placeholder="Phone Number *"
+            placeholder={t('Phone Number *')}
             value={formData.phoneNumber}
             onChangeText={(value) => handleInputChange('phoneNumber', value)}
             keyboardType="phone-pad"
           />
 
           <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>User Type *</Text>
+            <Text style={styles.pickerLabel}>{t('User Type *')}</Text>
             <Picker
               selectedValue={formData.userType}
               style={styles.picker}
               onValueChange={(value) => handleInputChange('userType', value)}
             >
-              <Picker.Item label="Citizen" value="citizen" />
-              <Picker.Item label="Admin" value="admin" />
+              <Picker.Item label={t('Citizen')} value="citizen" />
+              <Picker.Item label={t('Admin')} value="admin" />
             </Picker>
           </View>
 
           <TextInput
             style={styles.input}
-            placeholder="Address (Optional)"
+            placeholder={t('Address (Optional)')}
             value={formData.address}
             onChangeText={(value) => handleInputChange('address', value)}
             multiline
@@ -140,7 +142,7 @@ const SignupScreen = ({ navigation }) => {
 
           <TextInput
             style={styles.input}
-            placeholder="Password *"
+            placeholder={t('Password *')}
             value={formData.password}
             onChangeText={(value) => handleInputChange('password', value)}
             secureTextEntry
@@ -148,7 +150,7 @@ const SignupScreen = ({ navigation }) => {
 
           <TextInput
             style={styles.input}
-            placeholder="Confirm Password *"
+            placeholder={t('Confirm Password *')}
             value={formData.confirmPassword}
             onChangeText={(value) => handleInputChange('confirmPassword', value)}
             secureTextEntry
@@ -162,7 +164,7 @@ const SignupScreen = ({ navigation }) => {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Create Account</Text>
+              <Text style={styles.buttonText}>{t('Create Account')}</Text>
             )}
           </TouchableOpacity>
 
@@ -171,7 +173,7 @@ const SignupScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Login')}
           >
             <Text style={styles.linkText}>
-              Already have an account? Login
+              {t('Already have an account? Login')}
             </Text>
           </TouchableOpacity>
         </View>

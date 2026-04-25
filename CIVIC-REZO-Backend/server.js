@@ -106,6 +106,7 @@ app.use('/api/guest-votes', require('./routes/guest-votes'));
 app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/gradcam', require('./routes/gradcam'));
 app.use('/api/weather', require('./routes/weather'));
+app.use('/api/volunteer', require('./routes/volunteer').router);
 
 // Health check
 app.get('/health', (req, res) => {

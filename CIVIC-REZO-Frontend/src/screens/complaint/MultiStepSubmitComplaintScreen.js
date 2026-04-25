@@ -28,8 +28,13 @@ import LocationService from '../../services/LocationService';
 import SarvamSpeechService from '../../services/SarvamSpeechService';
 import CustomTextInput from '../../components/CustomTextInput';
 import InfrastructureService from '../../services/InfrastructureService';
+import { useTranslation } from '../../i18n/useTranslation';
+import { useAppLanguage } from '../../i18n/AppLanguageContext';
+import { getSpeechLocaleForAppLanguage } from '../../i18n/languageConfig';
 
 const MultiStepSubmitComplaintScreen = ({ navigation }) => {
+  const { t } = useTranslation();
+  const { language, speechLocale } = useAppLanguage();
 
   // Overall flow state
   const [currentStep, setCurrentStep] = useState(1);
@@ -42,7 +47,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
     // Step 2: Title and description
     title: '',
     description: '',
-    selectedLang: 'hi-IN',
+    selectedLang: getSpeechLocaleForAppLanguage(language),
     emotionScore: null,
 
     // Step 3: Image and validation
@@ -73,6 +78,13 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
   const [submissionResult, setSubmissionResult] = useState(null);
   const [nearbyInfrastructure, setNearbyInfrastructure] = useState(null);
   const [isLoadingInfrastructure, setIsLoadingInfrastructure] = useState(false);
+
+  useEffect(() => {
+    setComplaintData((prev) => ({
+      ...prev,
+      selectedLang: speechLocale || getSpeechLocaleForAppLanguage(language)
+    }));
+  }, [language, speechLocale]);
 
   // Refs for speech service
   // const descriptionInputRef = useRef(null); // Not needed with custom component
@@ -197,6 +209,28 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
     setComplaintData(prev => ({ ...prev, selectedLang: itemValue }));
   }, []);
 
+  const handleOpenPostLink = useCallback(async (postUrl) => {
+    try {
+      const postIdMatch = String(postUrl || '').match(/status\/(\d+)/i);
+      const postId = postIdMatch?.[1];
+      const appDeepLink = postId ? `twitter://status?id=${postId}` : null;
+
+      if (appDeepLink) {
+        const canOpenApp = await Linking.canOpenURL(appDeepLink);
+        if (canOpenApp) {
+          await Linking.openURL(appDeepLink);
+          return;
+        }
+      }
+
+      if (postUrl) {
+        await Linking.openURL(postUrl);
+      }
+    } catch (error) {
+      console.error('Failed to open post URL:', error);
+    }
+  }, []);
+
   // Initialize speech service
   useEffect(() => {
     // Initialize SarvamSpeechService with callbacks
@@ -227,9 +261,9 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
         setIsRecording(false);
 
         Alert.alert(
-          'Speech Recognition Error',
-          `There was an error processing your speech. Please try again or type your description.`,
-          [{ text: 'OK' }]
+          t('voice.speechRecognitionError'),
+          t('voice.speechRecognitionErrorBody'),
+          [{ text: t('common.ok') }]
         );
       },
       onEnd: () => {
@@ -502,8 +536,8 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.stepHeader}>
-          <Text style={styles.stepTitle}>Step 1: Select Issue Type</Text>
-          <Text style={styles.stepSubtitle}>What type of civic issue are you reporting?</Text>
+          <Text style={styles.stepTitle}>{t('submitComplaint.step1Title')}</Text>
+          <Text style={styles.stepSubtitle}>{t('submitComplaint.step1Subtitle')}</Text>
         </View>
 
         <View style={styles.categoriesGrid}>
@@ -530,8 +564,8 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
                     styles.categoryUrgency,
                     category.urgency === 'urgent' && styles.categoryUrgencyHigh
                   ]}>
-                    {category.urgency === 'urgent' ? '🚨 Urgent' :
-                      category.urgency === 'safety' ? '⚠️ Safety' : '📋 General'}
+                    {category.urgency === 'urgent' ? `🚨 ${t('submitComplaint.urgent')}` :
+                      category.urgency === 'safety' ? `⚠️ ${t('submitComplaint.safety')}` : `📋 ${t('submitComplaint.general')}`}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -543,13 +577,13 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
         {autoCapturingLocation && (
           <View style={styles.locationStatusContainer}>
             <ActivityIndicator size="small" color="#2E7D32" />
-            <Text style={styles.locationStatusText}>🔍 Capturing your location...</Text>
+            <Text style={styles.locationStatusText}>🔍 {t('submitComplaint.capturingLocation')}</Text>
           </View>
         )}
 
         {locationCaptured && complaintData.locationData && (
           <View style={styles.locationCapturedContainer}>
-            <Text style={styles.locationCapturedTitle}>✅ Location Captured Successfully</Text>
+            <Text style={styles.locationCapturedTitle}>✅ {t('submitComplaint.locationCaptured')}</Text>
             <Text style={styles.locationDetailText}>
               📍 Accuracy: ±{complaintData.locationData.radiusM}m ({complaintData.locationData.precision})
             </Text>
@@ -570,14 +604,14 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
         {isLoadingInfrastructure && (
           <View style={styles.infrastructureLoadingContainer}>
             <ActivityIndicator size="small" color="#2E7D32" />
-            <Text style={styles.infrastructureLoadingText}>🏢 Analyzing nearby infrastructure...</Text>
+            <Text style={styles.infrastructureLoadingText}>🏢 {t('submitComplaint.analyzingInfrastructure')}</Text>
           </View>
         )}
 
         {/* Nearby Infrastructure Display */}
         {nearbyInfrastructure && nearbyInfrastructure.places && nearbyInfrastructure.places.length > 0 && (
           <View style={styles.infrastructureContainer}>
-            <Text style={styles.infrastructureTitle}>🏢 Nearby Infrastructure</Text>
+            <Text style={styles.infrastructureTitle}>🏢 {t('submitComplaint.nearbyInfrastructure')}</Text>
             <Text style={styles.infrastructureSummary}>{nearbyInfrastructure.summary}</Text>
 
             <View style={styles.infrastructureList}>
@@ -593,7 +627,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
               ))}
               {nearbyInfrastructure.places.length > 3 && (
                 <Text style={styles.infrastructureMore}>
-                  +{nearbyInfrastructure.places.length - 3} more nearby
+                  {t('submitComplaint.moreNearby', { count: nearbyInfrastructure.places.length - 3 })}
                 </Text>
               )}
             </View>
@@ -611,7 +645,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
           {autoCapturingLocation ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.continueButtonText}>Continue to Details</Text>
+            <Text style={styles.continueButtonText}>{t('submitComplaint.continueToDetails')}</Text>
           )}
         </TouchableOpacity>
       </KeyboardAwareScrollView>
@@ -684,15 +718,13 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
       >
         <View style={styles.stepContainer}>
           <View style={styles.stepHeader}>
-            <Text style={styles.stepTitle}>Step 2: Add Details</Text>
-            <Text style={styles.stepSubtitle}>
-              Provide a title and detailed description of the issue
-            </Text>
+            <Text style={styles.stepTitle}>{t('submitComplaint.step2Title')}</Text>
+            <Text style={styles.stepSubtitle}>{t('submitComplaint.step2Subtitle')}</Text>
           </View>
 
           {/* Selected Category Display */}
           <View style={styles.selectedCategoryDisplay}>
-            <Text style={styles.selectedCategoryTitle}>Selected Issue Type:</Text>
+            <Text style={styles.selectedCategoryTitle}>{t('submitComplaint.selectedIssueType')}</Text>
             <View style={styles.selectedCategoryChip}>
               <Text style={styles.selectedCategoryChipText}>
                 {selectedCategory?.icon} {' '}
@@ -703,11 +735,11 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
 
           {/* Title Input - Custom Component */}
           <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>Complaint Title *</Text>
+            <Text style={styles.inputLabel}>{t('submitComplaint.complaintTitle')}</Text>
             <CustomTextInput
               value={complaintData.title}
               onChangeText={handleTitleChange}
-              placeholder="Brief title describing the issue"
+              placeholder={t('submitComplaint.titlePlaceholder')}
               maxLength={100}
               multiline={false}
               style={styles.customInputContainer}
@@ -717,7 +749,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
 
           {/* Language Picker - Enhanced */}
           <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>Select Language for Voice Input</Text>
+            <Text style={styles.inputLabel}>{t('submitComplaint.voiceLanguage')}</Text>
             <TouchableOpacity
               style={styles.customLanguageSelector}
               onPress={() => setShowLanguagePicker(true)}
@@ -748,12 +780,12 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
 
           {/* Description Input - Custom Component */}
           <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>Description *</Text>
+            <Text style={styles.inputLabel}>{t('submitComplaint.descriptionLabel')}</Text>
             <View style={styles.descriptionWrapper}>
               <CustomTextInput
                 value={complaintData.description}
                 onChangeText={handleDescriptionChange}
-                placeholder="Detailed description of the civic issue"
+                placeholder={t('submitComplaint.descriptionPlaceholder')}
                 maxLength={500}
                 multiline={true}
                 style={styles.customInputContainer}
@@ -776,7 +808,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
                   styles.voiceButtonText,
                   isRecording && styles.voiceButtonTextActive
                 ]}>
-                  {isRecording ? 'Stop Recording' : 'Voice Input'}
+                  {isRecording ? t('voice.stopRecording') : t('voice.voiceInput')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -786,23 +818,23 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
             {/* Emotion Analysis Score */}
             {complaintData.emotionScore ? (
               <View style={styles.emotionScoreContainer}>
-                <Text style={styles.emotionScoreLabel}>🧠 Emotion Analysis Results</Text>
+                <Text style={styles.emotionScoreLabel}>🧠 {t('complaintDetail.emotionAnalysisResults')}</Text>
                 <Text style={styles.emotionScoreValue}>
-                  Priority Impact: {complaintData.emotionScore.score}%
+                  {t('complaintDetail.priorityImpact')}: {complaintData.emotionScore.score}%
                 </Text>
                 <Text style={styles.emotionScoreMethod}>
-                  Method: {complaintData.emotionScore.analysisMethod || 'ai-powered'} ({complaintData.emotionScore.language || 'en'})
+                  {t('complaintDetail.method')}: {complaintData.emotionScore.analysisMethod || 'ai-powered'} ({complaintData.emotionScore.language || 'en'})
                 </Text>
                 {complaintData.emotionScore.emotions && (
                   <View style={styles.emotionDetails}>
                     <Text style={styles.emotionDetailText}>
-                      Urgency: {(complaintData.emotionScore.emotions.urgency * 100).toFixed(0)}% |
-                      Concern: {(complaintData.emotionScore.emotions.concern * 100).toFixed(0)}% |
-                      Frustration: {(complaintData.emotionScore.emotions.frustration * 100).toFixed(0)}%
+                      {t('complaintDetail.urgency')}: {(complaintData.emotionScore.emotions.urgency * 100).toFixed(0)}% |
+                      {t('complaintDetail.concern')}: {(complaintData.emotionScore.emotions.concern * 100).toFixed(0)}% |
+                      {t('complaintDetail.frustration')}: {(complaintData.emotionScore.emotions.frustration * 100).toFixed(0)}%
                     </Text>
                     {complaintData.emotionScore.emotions.anger && (
                       <Text style={styles.emotionDetailText}>
-                        Anger: {(complaintData.emotionScore.emotions.anger * 100).toFixed(0)}%
+                        {t('complaintDetail.anger')}: {(complaintData.emotionScore.emotions.anger * 100).toFixed(0)}%
                       </Text>
                     )}
                   </View>
@@ -810,11 +842,11 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
               </View>
             ) : (
               <View style={styles.emotionScoreContainer}>
-                <Text style={styles.emotionScoreLabel}>🧠 Emotion Analysis</Text>
+                <Text style={styles.emotionScoreLabel}>🧠 {t('complaintDetail.emotionAnalysisTitle')}</Text>
                 <Text style={styles.emotionScoreMethod}>
                   {complaintData.description.length < 10
-                    ? 'Write at least 10 characters for emotion analysis'
-                    : 'Analyzing emotions... (Auto-triggers after 1 second)'}
+                    ? t('complaintDetail.writeMore')
+                    : t('complaintDetail.analyzingAuto')}
                 </Text>
               </View>
             )}
@@ -822,7 +854,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
             {complaintData.description.length > 10 && !complaintData.emotionScore && (
               <View style={styles.emotionAnalyzingContainer}>
                 <ActivityIndicator size="small" color="#666" />
-                <Text style={styles.emotionAnalyzingText}>Analyzing emotion...</Text>
+                <Text style={styles.emotionAnalyzingText}>{t('complaintDetail.analyzing')}</Text>
               </View>
             )}
           </View>
@@ -848,7 +880,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
               onPress={goToPreviousStep}
             >
               <Ionicons name="chevron-back" size={20} color="#666" />
-              <Text style={styles.backNavigationText}>Back</Text>
+              <Text style={styles.backNavigationText}>{t('common.back')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -859,7 +891,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
               onPress={handleContinue}
               disabled={!complaintData.title.trim() || !complaintData.description.trim()}
             >
-              <Text style={styles.continueButtonText}>Continue to Photo</Text>
+              <Text style={styles.continueButtonText}>{t('submitComplaint.continueToPhoto')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -873,7 +905,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
             <View style={styles.modalOverlay}>
               <View style={styles.languagePickerModal}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Language</Text>
+                  <Text style={styles.modalTitle}>{t('language.switcherTitle')}</Text>
                   <TouchableOpacity
                     onPress={() => setShowLanguagePicker(false)}
                     style={styles.modalCloseButton}
@@ -1227,9 +1259,9 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.stepHeader}>
-          <Text style={styles.stepTitle}>Step 3: Add Photo</Text>
+          <Text style={styles.stepTitle}>{t('submitComplaint.step3Title')}</Text>
           <Text style={styles.stepSubtitle}>
-            Upload a clear photo showing the civic issue for validation
+            {t('submitComplaint.step3Subtitle')}
           </Text>
         </View>
 
@@ -1241,19 +1273,19 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
                 style={styles.changeImageButton}
                 onPress={() => setComplaintData(prev => ({ ...prev, selectedImage: null, imageValidation: null }))}
               >
-                <Text style={styles.changeImageText}>Change Image</Text>
+                <Text style={styles.changeImageText}>{t('submitComplaint.changeImage')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.imagePickerContainer}>
               <TouchableOpacity style={styles.imagePickerButton} onPress={takePhoto}>
                 <Ionicons name="camera" size={32} color="#2E7D32" />
-                <Text style={styles.imagePickerText}>Take Photo</Text>
+                <Text style={styles.imagePickerText}>{t('submitComplaint.takePhoto')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
                 <Ionicons name="images" size={32} color="#2E7D32" />
-                <Text style={styles.imagePickerText}>Choose from Gallery</Text>
+                <Text style={styles.imagePickerText}>{t('submitComplaint.chooseFromGallery')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1288,7 +1320,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
             onPress={goToPreviousStep}
           >
             <Ionicons name="chevron-back" size={20} color="#666" />
-            <Text style={styles.backNavigationText}>Back</Text>
+            <Text style={styles.backNavigationText}>{t('common.back')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1302,7 +1334,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.submitButtonText}>Submit Complaint</Text>
+              <Text style={styles.submitButtonText}>{t('submitComplaint.submit')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -1347,27 +1379,27 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
       >
         <View style={styles.successHeader}>
           <Ionicons name="checkmark-circle" size={80} color="#2E7D32" />
-          <Text style={styles.successTitle}>Complaint Successfully Submitted!</Text>
+          <Text style={styles.successTitle}>{t('submitComplaint.step4Title')}</Text>
           <Text style={styles.successSubtitle}>
-            Your complaint has been received and will be processed according to its priority level.
+            {t('submitComplaint.successSubtitle')}
           </Text>
         </View>
 
         <View style={styles.complaintDetailsCard}>
-          <Text style={styles.detailsCardTitle}>📋 Complaint Details</Text>
+          <Text style={styles.detailsCardTitle}>📋 {t('submitComplaint.complaintDetails')}</Text>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Complaint ID:</Text>
+            <Text style={styles.detailLabel}>{t('complaintDetail.complaintId')}:</Text>
             <Text style={styles.detailValue}>{submissionResult.complaint.id}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Title:</Text>
+            <Text style={styles.detailLabel}>{t('submitComplaint.titleLabel')}:</Text>
             <Text style={styles.detailValue}>{complaintData.title}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Category:</Text>
+            <Text style={styles.detailLabel}>{t('submitComplaint.categoryLabel')}:</Text>
             <Text style={styles.detailValue}>
               {complaintCategories.find(cat => cat.value === complaintData.category)?.icon} {' '}
               {complaintCategories.find(cat => cat.value === complaintData.category)?.label}
@@ -1375,12 +1407,12 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Status:</Text>
+            <Text style={styles.detailLabel}>{t('submitComplaint.statusLabel')}:</Text>
             <Text style={styles.detailValue}>{submissionResult.complaint.status || 'Pending'}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Priority Level:</Text>
+            <Text style={styles.detailLabel}>{t('submitComplaint.priorityLevelLabel')}:</Text>
             <Text style={[styles.detailValue, styles.priorityText]}>
               {submissionResult.priorityAnalysis?.priorityLevel || 'MEDIUM'}
               ({Math.round((submissionResult.priorityAnalysis?.totalScore || 0) * 100)}%)
@@ -1388,21 +1420,21 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Location Accuracy:</Text>
+            <Text style={styles.detailLabel}>{t('submitComplaint.locationAccuracyLabel')}:</Text>
             <Text style={styles.detailValue}>
               ±{complaintData.locationData.radiusM}m ({complaintData.locationData.precision})
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Submitted:</Text>
+            <Text style={styles.detailLabel}>{t('submitComplaint.submittedLabel')}:</Text>
             <Text style={styles.detailValue}>{new Date().toLocaleString()}</Text>
           </View>
         </View>
 
         {submissionResult.priorityAnalysis && (
           <View style={styles.priorityAnalysisCard}>
-            <Text style={styles.detailsCardTitle}>🎯 Priority Analysis</Text>
+            <Text style={styles.detailsCardTitle}>🎯 {t('submitComplaint.priorityAnalysis')}</Text>
             <Text style={styles.reasoningText}>
               {submissionResult.priorityAnalysis.reasoning}
             </Text>
@@ -1411,13 +1443,13 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
 
         {submissionResult.socialSignals && (
           <View style={styles.socialSignalsCard}>
-            <Text style={styles.detailsCardTitle}>🐦 Related Public Posts (X)</Text>
+            <Text style={styles.detailsCardTitle}>🐦 {t('social.relatedPublicPosts')}</Text>
             <Text style={styles.reasoningText}>
-              Status: {submissionResult.socialSignals.status || 'pending'}
-              {'\n'}Matched Posts: {submissionResult.socialSignals.matchedCount || 0}
-              {'\n'}Fetched Posts: {submissionResult.socialSignals.fetchedCount || 0}
-              {'\n'}Text Matches (Location + Classification): {submissionResult.socialSignals.verifiedMatchCount || 0}
-              {'\n'}Severity Boost: +{Math.round((submissionResult.priorityAnalysis?.socialBoost || 0) * 100)}%
+              {t('social.status')}: {submissionResult.socialSignals.status || 'pending'}
+              {'\n'}{t('social.matchedPosts')}: {submissionResult.socialSignals.matchedCount || 0}
+              {'\n'}{t('social.fetchedPosts')}: {submissionResult.socialSignals.fetchedCount || 0}
+              {'\n'}{t('social.textMatches')}: {submissionResult.socialSignals.verifiedMatchCount || 0}
+              {'\n'}{t('social.severityBoost')}: +{Math.round((submissionResult.priorityAnalysis?.socialBoost || 0) * 100)}%
             </Text>
 
             {(submissionResult.socialSignals.topPosts || []).map((post, index) => (
@@ -1427,13 +1459,13 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
                 </Text>
                 <Text style={styles.socialPostStatus}>
                   {post.classificationVerified
-                    ? 'Matched: classification text + location text found'
-                    : `Match status: ${post.correlationStatus || 'not_evaluated'}`}
+                    ? t('social.matchFound')
+                    : `${t('social.matchStatus')}: ${post.correlationStatus || 'not_evaluated'}`}
                 </Text>
                 <Text style={styles.socialPostText} numberOfLines={4}>
                   {post.textExcerpt || 'No text available'}
                 </Text>
-                <TouchableOpacity onPress={() => Linking.openURL(post.postUrl)}>
+                <TouchableOpacity onPress={() => handleOpenPostLink(post.postUrl)}>
                   <Text style={[styles.socialPostLink, { color: '#1DA1F2', textDecorationLine: 'underline' }]} numberOfLines={1}>
                     {post.postUrl}
                   </Text>
@@ -1466,7 +1498,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
         )}
 
         <View style={styles.nextStepsCard}>
-          <Text style={styles.detailsCardTitle}>📅 Next Steps</Text>
+          <Text style={styles.detailsCardTitle}>📅 {t('submitComplaint.nextSteps')}</Text>
           {submissionResult.nextSteps?.map((step, index) => (
             <Text key={index} style={styles.nextStepText}>
               {index + 1}. {step}
@@ -1477,7 +1509,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
         <View style={styles.successActions}>
           <TouchableOpacity style={styles.mapButton} onPress={viewOnMap}>
             <Ionicons name="map" size={20} color="#fff" />
-            <Text style={styles.mapButtonText}>View on Map</Text>
+            <Text style={styles.mapButtonText}>{t('submitComplaint.viewOnMap')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1487,7 +1519,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
               complaintTitle: complaintData.title
             })}
           >
-            <Text style={styles.doneButtonText}>Continue</Text>
+            <Text style={styles.doneButtonText}>{t('auth.common.continue')}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>

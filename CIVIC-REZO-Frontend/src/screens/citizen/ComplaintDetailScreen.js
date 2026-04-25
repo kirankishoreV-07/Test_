@@ -23,10 +23,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { refetchComplaintVotes } from '../../utils/voteUtils';
 import { handleVoting } from '../../utils/enhancedVoteUtils';
 import MapView, { Marker, Circle } from 'react-native-maps';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 
 const ComplaintDetailScreen = ({ route, navigation }) => {
+  const { t } = useTranslation();
   const { complaintId } = route.params;
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,12 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [breakdownData, setBreakdownData] = useState(null);
   const [loadingBreakdown, setLoadingBreakdown] = useState(false);
+  const [volunteers, setVolunteers] = useState([]);
+  const [hasVolunteered, setHasVolunteered] = useState(false);
+  const [volunteeringInProg, setVolunteeringInProg] = useState(false);
   const insets = useSafeAreaInsets();
+
+  const VOLUNTEER_ELIGIBLE_CATEGORIES = ['garbage', 'tree_issue', 'public_property_damage', 'stray_animals', 'other', 'pothole', 'water_issue'];
 
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -74,31 +81,27 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
   // Enhanced back navigation function
   const handleBackNavigation = () => {
     if (loading) {
-      // If still loading, show confirmation
       Alert.alert(
-        "Cancel Loading?",
-        "The complaint details are still loading. Are you sure you want to go back?",
+        t('complaintDetail.cancelLoading'),
+        t('complaintDetail.stillLoadingMsg'),
         [
-          { text: "Stay", style: "cancel" },
-          { text: "Go Back", onPress: () => navigation.goBack() }
+          { text: t('common.stay'), style: "cancel" },
+          { text: t('common.goBack'), onPress: () => navigation.goBack() }
         ]
       );
     } else if (updatingVote) {
-      // If vote is being updated, show confirmation
       Alert.alert(
-        "Cancel Vote Update?",
-        "Your vote is being processed. Are you sure you want to go back?",
+        t('complaintDetail.cancelVote'),
+        t('complaintDetail.voteProcessingMsg'),
         [
-          { text: "Stay", style: "cancel" },
-          { text: "Go Back", onPress: () => navigation.goBack() }
+          { text: t('common.stay'), style: "cancel" },
+          { text: t('common.goBack'), onPress: () => navigation.goBack() }
         ]
       );
     } else {
-      // Normal navigation back with smooth transition
       try {
         navigation.goBack();
       } catch (error) {
-        // Fallback navigation if goBack fails
         console.log('Navigation fallback triggered');
         navigation.navigate('CitizenDashboard');
       }
@@ -133,29 +136,37 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
       );
       
       if (response.success && response.complaint) {
-        // Calculate time ago
         const timeAgo = getTimeAgo(new Date(response.complaint.created_at));
-        
         setComplaint({
           ...response.complaint,
           timeAgo,
           voteCount: response.complaint.vote_count || 0,
           userVoted: response.complaint.userVoted || false,
         });
+        
+        // Fetch volunteers
+        try {
+          const volResponse = await makeApiCall(`${apiClient.baseUrl}/api/volunteer/complaint/${complaintId}`, { method: 'GET' });
+          if (volResponse && volResponse.success) {
+            setVolunteers(volResponse.volunteers || []);
+          }
+        } catch (e) {
+          console.log('Error fetching volunteers', e);
+        }
       } else {
         console.error('❌ Error fetching complaint details:', response);
         Alert.alert(
-          "Error",
-          "Could not load complaint details. Please try again later.",
-          [{ text: "OK", onPress: handleBackNavigation }]
+          t('common.error'),
+          t('complaintDetail.loadingDetails'),
+          [{ text: t('common.ok'), onPress: handleBackNavigation }]
         );
       }
     } catch (error) {
       console.error('❌ Error fetching complaint details:', error);
       Alert.alert(
-        "Error",
-        "An error occurred while loading the complaint. Please try again.",
-        [{ text: "OK", onPress: handleBackNavigation }]
+        t('common.error'),
+        t('complaintDetail.loadingDetails'),
+        [{ text: t('common.ok'), onPress: handleBackNavigation }]
       );
     } finally {
       setLoading(false);
@@ -237,9 +248,9 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
       if (!voteResponse.success) {
         console.error('❌ Vote failed:', voteResponse);
         Alert.alert(
-          "Vote Failed",
-          "There was a problem recording your vote. Please try again.",
-          [{ text: "OK" }]
+          t('complaintDetail.voteFailed'),
+          t('complaintDetail.voteFailedMsg'),
+          [{ text: t('common.ok') }]
         );
         return;
       }
@@ -261,9 +272,9 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error('❌ Error voting for complaint:', error);
       Alert.alert(
-        "Vote Failed", 
-        "There was a problem recording your vote. Please try again.",
-        [{ text: "OK" }]
+        t('complaintDetail.voteFailed'),
+        t('complaintDetail.voteFailedMsg'),
+        [{ text: t('common.ok') }]
       );
     } finally {
       setUpdatingVote(false);
@@ -272,13 +283,44 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
   
   const handleShare = async () => {
     try {
-      const result = await Share.share({
+      await Share.share({
         message: `Check out this civic issue: ${complaint.title} - Reported via CivicRezo App`,
         url: `https://civicrezo.org/complaints/${complaintId}`,
-        title: 'Share Civic Issue',
+        title: t('complaintDetail.shareCivicIssue'),
       });
     } catch (error) {
-      Alert.alert('Error', 'Could not share this complaint');
+      Alert.alert(t('common.error'), t('complaintDetail.shareError'));
+    }
+  };
+
+  const handleVolunteerOptIn = async () => {
+    if (volunteeringInProg) return;
+    setVolunteeringInProg(true);
+    try {
+      // The backend will automatically resolve the foreign key using an existing user ID 
+      // from the users table. We just pass 'dummy-user' to satisfy the payload requirements.
+      const response = await makeApiCall(`${apiClient.baseUrl}/api/volunteer/opt-in`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ complaintId, userId: 'dummy-user' })
+      });
+      
+      if (response.success) {
+        Alert.alert(
+          'Volunteer Assigned',
+          'Thank you for opting in! The administration has been notified.',
+          [{ text: 'OK' }]
+        );
+        setHasVolunteered(true);
+        fetchComplaintDetails(); // Refresh to get volunteers
+      } else {
+        Alert.alert('Opt-in Failed', response.error || 'Failed to assign volunteer');
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'An error occurred while opting in.');
+    } finally {
+      setVolunteeringInProg(false);
     }
   };
 
@@ -366,20 +408,18 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
   
   const getStatusSteps = (status) => {
     const steps = [
-      { name: 'Submitted', completed: true },
-      { name: 'Verified', completed: ['in_progress', 'resolved'].includes(status) },
-      { name: 'In Progress', completed: ['in_progress', 'resolved'].includes(status) },
-      { name: 'Resolved', completed: status === 'resolved' }
+      { name: t('reports.submitted'), completed: true },
+      { name: t('Verified'), completed: ['in_progress', 'resolved'].includes(status) },
+      { name: t('reports.stats.inProgress'), completed: ['in_progress', 'resolved'].includes(status) },
+      { name: t('reports.stats.resolved'), completed: status === 'resolved' }
     ];
-    
     if (status === 'rejected') {
       return [
-        { name: 'Submitted', completed: true },
-        { name: 'Reviewed', completed: true },
-        { name: 'Rejected', completed: true, isRejected: true }
+        { name: t('reports.submitted'), completed: true },
+        { name: t('Reviewed'), completed: true },
+        { name: t('Rejected'), completed: true, isRejected: true }
       ];
     }
-    
     return steps;
   };
   
@@ -398,7 +438,7 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color="#1A1A1A" />
-        <Text style={styles.loadingText}>Loading complaint details...</Text>
+        <Text style={styles.loadingText}>{t('complaintDetail.loadingDetails')}</Text>
       </View>
     );
   }
@@ -407,13 +447,13 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
     return (
       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
         <Ionicons name="alert-circle-outline" size={60} color="#f44336" />
-        <Text style={styles.errorTitle}>Complaint Not Found</Text>
-        <Text style={styles.errorText}>The complaint you're looking for doesn't exist or has been removed.</Text>
-        <TouchableOpacity 
+        <Text style={styles.errorTitle}>{t('complaintDetail.notFound')}</Text>
+        <Text style={styles.errorText}>{t('complaintDetail.notFoundDesc')}</Text>
+        <TouchableOpacity
           style={styles.backButton}
           onPress={handleBackNavigation}
         >
-          <Text style={styles.backButtonText}>Go Back</Text>
+          <Text style={styles.backButtonText}>{t('common.goBack')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -487,7 +527,7 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
           ) : (
             <View style={styles.noImageContainer}>
               <Ionicons name="image" size={80} color="#ddd" />
-              <Text style={styles.noImageText}>No image available</Text>
+              <Text style={styles.noImageText}>{t('common.noImageAvailable')}</Text>
             </View>
           )}
           
@@ -563,15 +603,49 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
           
+          {/* Volunteer Section */}
+          {VOLUNTEER_ELIGIBLE_CATEGORIES.includes(complaint.category) && (
+            <View style={styles.volunteerContainer}>
+              <View style={styles.volunteerHeader}>
+                <Ionicons name="people-circle" size={24} color="#f39c12" />
+                <Text style={styles.sectionTitle}>Rotary Volunteers ({volunteers.length})</Text>
+              </View>
+              
+              {volunteers.length > 0 ? (
+                <View style={styles.volunteerList}>
+                  {volunteers.map((v, i) => (
+                    <Text key={i} style={styles.volunteerItem}>• {v.name}</Text>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.volunteerEmpty}>No volunteers yet.</Text>
+              )}
+
+              <TouchableOpacity 
+                style={[styles.volunteerButton, (hasVolunteered || volunteers.length > 0) && styles.volunteerButtonDisabled]}
+                onPress={handleVolunteerOptIn}
+                disabled={volunteeringInProg || hasVolunteered}
+              >
+                {volunteeringInProg ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.volunteerButtonText}>
+                    {hasVolunteered ? 'You Volunteered!' : 'Volunteer to Help'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Description */}
           <View style={styles.descriptionContainer}>
-            <Text style={styles.descriptionTitle}>Description</Text>
+            <Text style={styles.descriptionTitle}>{t('complaintDetail.description')}</Text>
             <Text style={styles.descriptionText}>{complaint.description}</Text>
           </View>
           
           {/* Location */}
           <View style={styles.locationContainer}>
-            <Text style={styles.sectionTitle}>Location</Text>
+            <Text style={styles.sectionTitle}>{t('complaintDetail.location')}</Text>
             <Text style={styles.locationAddress}>{complaint.location_address}</Text>
             
             {complaint.location_latitude && complaint.location_longitude && (
@@ -620,7 +694,7 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
                   style={styles.viewOnMapButton}
                   onPress={handleNavigateToMap}
                 >
-                  <Text style={styles.viewOnMapText}>View on Full Map</Text>
+                  <Text style={styles.viewOnMapText}>{t('complaintDetail.viewOnFullMap')}</Text>
                   <Ionicons name="map-outline" size={16} color="#1A1A1A" />
                 </TouchableOpacity>
               </View>
@@ -629,7 +703,7 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
           
           {/* Status Timeline */}
           <View style={styles.statusTimelineContainer}>
-            <Text style={styles.sectionTitle}>Status Updates</Text>
+            <Text style={styles.sectionTitle}>{t('complaintDetail.statusUpdates')}</Text>
             <View style={styles.timeline}>
               {getStatusSteps(complaint.status).map((step, index) => (
                 <View key={index} style={styles.timelineItem}>
@@ -669,8 +743,8 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
                   <View key={index} style={styles.updateItem}>
                     <View style={styles.updateHeader}>
                       <Text style={styles.updateTitle}>
-                        Status changed to{' '}
-                        <Text style={{ 
+                        {t('complaintDetail.statusChangedTo')}{' '}
+                        <Text style={{
                           color: getStatusColor(update.new_status),
                           fontWeight: 'bold'
                         }}>
@@ -689,12 +763,12 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
               <View style={styles.updateItem}>
                 <View style={styles.updateHeader}>
                   <Text style={styles.updateTitle}>
-                    Status changed to{' '}
-                    <Text style={{ 
+                    {t('complaintDetail.statusChangedTo')}{' '}
+                    <Text style={{
                       color: getStatusColor('resolved'),
                       fontWeight: 'bold'
                     }}>
-                      Resolved
+                      {t('reports.stats.resolved')}
                     </Text>
                   </Text>
                   <Text style={styles.updateTime}>{formatDate(complaint.resolved_at)}</Text>
@@ -705,17 +779,17 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
               </View>
             ) : (
               <Text style={styles.noUpdatesText}>
-                No status updates yet. We'll notify you when there's progress.
+                {t('complaintDetail.noUpdates')}
               </Text>
             )}
           </View>
           
           {/* Priority Information */}
           <View style={styles.priorityContainer}>
-            <Text style={styles.sectionTitle}>Priority Information</Text>
+            <Text style={styles.sectionTitle}>{t('complaintDetail.priorityInformation')}</Text>
             <View style={styles.priorityRow}>
               <View style={styles.priorityItem}>
-                <Text style={styles.priorityLabel}>Priority Score</Text>
+                <Text style={styles.priorityLabel}>{t('complaintDetail.priorityScore')}</Text>
                 <View style={[styles.priorityBadge, { 
                   backgroundColor: getPriorityColor(complaint.priority_score)
                 }]}>
@@ -725,7 +799,7 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
                 </View>
               </View>
               <View style={styles.priorityItem}>
-                <Text style={styles.priorityLabel}>Location Impact</Text>
+                <Text style={styles.priorityLabel}>{t('complaintDetail.locationImpact')}</Text>
                 <View style={[styles.priorityBadge, { 
                   backgroundColor: getPriorityColor(complaint.location_sensitivity_score)
                 }]}>
@@ -735,7 +809,7 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
                 </View>
               </View>
               <View style={styles.priorityItem}>
-                <Text style={styles.priorityLabel}>AI Confidence</Text>
+                <Text style={styles.priorityLabel}>{t('complaintDetail.aiConfidence')}</Text>
                 <View style={[styles.priorityBadge, { 
                   backgroundColor: getPriorityColor(complaint.ai_confidence_score)
                 }]}>
@@ -757,7 +831,7 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
               }}
             >
               <View style={styles.breakdownHeader}>
-                <Text style={styles.breakdownTitle}>Algorithm Breakdown</Text>
+                <Text style={styles.breakdownTitle}>{t('complaintDetail.algorithmBreakdown')}</Text>
                 <Ionicons 
                   name={showBreakdown ? "chevron-up" : "chevron-down"} 
                   size={20} 
@@ -771,14 +845,14 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
                 {loadingBreakdown ? (
                   <View style={styles.breakdownLoading}>
                     <ActivityIndicator size="small" color="#1A1A1A" />
-                    <Text style={styles.loadingText}>Loading breakdown...</Text>
+                    <Text style={styles.loadingText}>{t('complaintDetail.loadingBreakdown')}</Text>
                   </View>
                 ) : breakdownData ? (
                   <View style={styles.algorithmScores}>
                     {/* Infrastructure Score */}
                     <View style={styles.scoreRow}>
                       <View style={styles.scoreInfo}>
-                        <Text style={styles.scoreName}>Infrastructure</Text>
+                        <Text style={styles.scoreName}>{t('complaintDetail.infrastructure')}</Text>
                         <Text style={styles.scorePercent}>
                           {Math.round((breakdownData.infrastructureScore || 0) * 100)}%
                         </Text>
@@ -799,7 +873,7 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
                     {/* Image Analysis Score */}
                     <View style={styles.scoreRow}>
                       <View style={styles.scoreInfo}>
-                        <Text style={styles.scoreName}>Image Analysis</Text>
+                        <Text style={styles.scoreName}>{t('complaintDetail.imageAnalysis')}</Text>
                         <Text style={styles.scorePercent}>
                           {Math.round((breakdownData.imageValidationScore || 0) * 100)}%
                         </Text>
@@ -820,7 +894,7 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
                     {/* Emotion Analysis Score */}
                     <View style={styles.scoreRow}>
                       <View style={styles.scoreInfo}>
-                        <Text style={styles.scoreName}>Emotion Analysis</Text>
+                        <Text style={styles.scoreName}>{t('complaintDetail.emotionAnalysis')}</Text>
                         <Text style={styles.scorePercent}>
                           {Math.round((breakdownData.emotionScore || 0) * 100)}%
                         </Text>
@@ -841,7 +915,7 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
                     {/* Community Voting Score */}
                     <View style={styles.scoreRow}>
                       <View style={styles.scoreInfo}>
-                        <Text style={styles.scoreName}>Community Votes</Text>
+                        <Text style={styles.scoreName}>{t('complaintDetail.communityVotes')}</Text>
                         <Text style={styles.scorePercent}>
                           {Math.round((breakdownData.voteScore || 0) * 100)}%
                         </Text>
@@ -859,12 +933,10 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
                       </View>
                     </View>
 
-                    <Text style={styles.weightingNote}>
-                      Weighting: Infrastructure (40%) • Image (30%) • Emotion (20%) • Votes (10%)
-                    </Text>
+                    <Text style={styles.weightingNote}>{t('complaintDetail.weightingNote')}</Text>
                   </View>
                 ) : (
-                  <Text style={styles.breakdownError}>Unable to load breakdown data</Text>
+                  <Text style={styles.breakdownError}>{t('complaintDetail.unableToLoad')}</Text>
                 )}
               </View>
             )}
@@ -872,17 +944,17 @@ const ComplaintDetailScreen = ({ route, navigation }) => {
           
           {/* Metadata */}
           <View style={styles.metadataContainer}>
-            <Text style={styles.metadataText}>Complaint ID: {complaint.id}</Text>
-            <Text style={styles.metadataText}>Submitted: {formatDate(complaint.created_at)}</Text>
+            <Text style={styles.metadataText}>{t('complaintDetail.complaintId')}: {complaint.id}</Text>
+            <Text style={styles.metadataText}>{t('complaintDetail.submittedOn')}: {formatDate(complaint.created_at)}</Text>
             {complaint.resolved_at && (
-              <Text style={styles.metadataText}>Resolved: {formatDate(complaint.resolved_at)}</Text>
+              <Text style={styles.metadataText}>{t('reports.stats.resolved')}: {formatDate(complaint.resolved_at)}</Text>
             )}
           </View>
           
           {/* Similar Complaints */}
           {complaint.similarComplaints && complaint.similarComplaints.length > 0 && (
             <View style={styles.similarContainer}>
-              <Text style={styles.sectionTitle}>Similar Complaints Nearby</Text>
+              <Text style={styles.sectionTitle}>{t('complaintDetail.similarNearby')}</Text>
               <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
@@ -1609,6 +1681,48 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 12,
     color: '#666',
+  },
+  volunteerContainer: {
+    marginTop: 15,
+    padding: 15,
+    backgroundColor: '#fffcf2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fdebd0',
+  },
+  volunteerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  volunteerList: {
+    marginBottom: 10,
+  },
+  volunteerItem: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 10,
+    marginVertical: 2,
+  },
+  volunteerEmpty: {
+    fontSize: 14,
+    color: '#888',
+    fontStyle: 'italic',
+    marginBottom: 10,
+  },
+  volunteerButton: {
+    backgroundColor: '#f39c12',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  volunteerButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  volunteerButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
 

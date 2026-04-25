@@ -8,13 +8,21 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../../i18n/useTranslation';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 
 const { width, height } = Dimensions.get('window');
 
 const WelcomeScreen = ({ navigation }) => {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" />
+
+      <View style={styles.switcherWrap}>
+        <LanguageSwitcher compact />
+      </View>
 
       {/* Top brand section */}
       <View style={styles.brandSection}>
@@ -22,9 +30,9 @@ const WelcomeScreen = ({ navigation }) => {
           <Ionicons name="compass-outline" size={36} color="#1A1A1A" />
         </View>
 
-        <Text style={styles.brandName}>CIVIC-REZO</Text>
+        <Text style={styles.brandName}>{t('app.brandName')}</Text>
         <View style={styles.divider} />
-        <Text style={styles.tagline}>Institutional Portal</Text>
+        <Text style={styles.tagline}>{t('app.institutionalPortal')}</Text>
       </View>
 
       {/* Portal selection */}
@@ -35,7 +43,7 @@ const WelcomeScreen = ({ navigation }) => {
           activeOpacity={0.7}
         >
           <Ionicons name="people-outline" size={24} color="#1A1A1A" />
-          <Text style={styles.portalLabel}>CITIZEN PORTAL</Text>
+          <Text style={styles.portalLabel}>{t('welcome.citizenPortal')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -44,13 +52,13 @@ const WelcomeScreen = ({ navigation }) => {
           activeOpacity={0.7}
         >
           <Ionicons name="shield-checkmark-outline" size={24} color="#1A1A1A" />
-          <Text style={styles.portalLabel}>ADMIN ACCESS</Text>
+          <Text style={styles.portalLabel}>{t('welcome.adminAccess')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>SYSTEM ARCHITECTURE VALIDATED</Text>
+        <Text style={styles.footerText}>{t('app.systemValidated')}</Text>
       </View>
     </View>
   );
@@ -67,6 +75,12 @@ const styles = StyleSheet.create({
   brandSection: {
     alignItems: 'center',
     marginBottom: 64,
+  },
+  switcherWrap: {
+    position: 'absolute',
+    top: 52,
+    right: 16,
+    zIndex: 5,
   },
   logoMark: {
     width: 72,

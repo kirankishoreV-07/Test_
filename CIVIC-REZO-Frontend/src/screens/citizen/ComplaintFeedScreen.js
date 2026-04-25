@@ -26,11 +26,13 @@ import NewsCarousel from '../../components/NewsCarousel';
 import NewsCard from '../../components/NewsCard';
 import NewsService from '../../services/NewsService';
 import WeatherWidget from '../../components/WeatherWidget';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const { width } = Dimensions.get('window');
 const CARD_HEIGHT = 380;
 
 const ComplaintFeedScreen = ({ navigation }) => {
+ const { t } = useTranslation();
  const [complaints, setComplaints] = useState([]);
  const [loading, setLoading] = useState(true);
  const [refreshing, setRefreshing] = useState(false);
@@ -469,7 +471,7 @@ const ComplaintFeedScreen = ({ navigation }) => {
  ) : (
  <View style={styles.noImageContainer}>
  <Ionicons name="image" size={50} color="#ddd" />
- <Text style={styles.noImageText}>No image available</Text>
+ <Text style={styles.noImageText}>{t('common.noImageAvailable')}</Text>
  </View>
  )}
  
@@ -512,7 +514,7 @@ const ComplaintFeedScreen = ({ navigation }) => {
  style={styles.detailsButton}
  onPress={() => navigation.navigate('ComplaintDetail', { complaintId: item.id })}
  >
- <Text style={styles.detailsText}>View Details</Text>
+ <Text style={styles.detailsText}>{t('feed.viewDetails')}</Text>
  <Ionicons name="chevron-forward" size={16} color="#1A1A1A" />
  </TouchableOpacity>
  </View>
@@ -524,7 +526,7 @@ const ComplaintFeedScreen = ({ navigation }) => {
  return (
  <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
  <ActivityIndicator size="large" color="#1A1A1A" />
- <Text style={styles.loadingText}>Getting your location...</Text>
+ <Text style={styles.loadingText}>{t('feed.gettingLocation')}</Text>
  </View>
  );
  }
@@ -532,14 +534,14 @@ const ComplaintFeedScreen = ({ navigation }) => {
  return (
  <View style={[styles.container, { paddingTop: insets.top }]}>
  <View style={styles.header}>
- <Text style={styles.headerTitle}>Nearby Issues</Text>
+ <Text style={styles.headerTitle}>{t('feed.title')}</Text>
  {userLocation && (
  <TouchableOpacity 
  style={styles.locationButton}
  onPress={fetchUserLocation}
  >
  <Ionicons name="locate" size={16} color="#fff" />
- <Text style={styles.locationButtonText}>Within 5km</Text>
+ <Text style={styles.locationButtonText}>{t('feed.within5km')}</Text>
  </TouchableOpacity>
  )}
  </View>
@@ -547,21 +549,21 @@ const ComplaintFeedScreen = ({ navigation }) => {
  {loading && !refreshing ? (
  <View style={styles.loadingContainer}>
  <ActivityIndicator size="large" color="#1A1A1A" />
- <Text style={styles.loadingText}>Loading nearby complaints...</Text>
+ <Text style={styles.loadingText}>{t('feed.loadingComplaints')}</Text>
  </View>
  ) : complaints.length === 0 ? (
  <View style={styles.emptyContainer}>
  <Ionicons name="alert-circle-outline" size={60} color="#ccc" />
- <Text style={styles.emptyTitle}>No Complaints Nearby</Text>
+ <Text style={styles.emptyTitle}>{t('feed.noComplaintsNearby')}</Text>
  <Text style={styles.emptyText}>
- There are no reported issues within 5km of your location.
+ {t('feed.noComplaintsDesc')}
  </Text>
  <TouchableOpacity 
  style={styles.reportButton}
  onPress={() => navigation.navigate('SubmitComplaint')}
  >
  <Ionicons name="add-circle" size={20} color="#fff" />
- <Text style={styles.reportButtonText}>Report an Issue</Text>
+ <Text style={styles.reportButtonText}>{t('feed.reportAnIssue')}</Text>
  </TouchableOpacity>
  </View>
  ) : (
@@ -602,7 +604,7 @@ const ComplaintFeedScreen = ({ navigation }) => {
  marginHorizontal: 16, 
  marginBottom: 8 
  }}>
- ️ Civic News
+ {t('feed.civicNews')}
  </Text>
  <NewsCarousel
  news={topNews}
@@ -622,7 +624,7 @@ const ComplaintFeedScreen = ({ navigation }) => {
  marginHorizontal: 16, 
  marginBottom: 8 
  }}>
- Community Reports
+ {t('feed.communityReports')}
  </Text>
  </>
  ) : (
@@ -640,7 +642,7 @@ const ComplaintFeedScreen = ({ navigation }) => {
  marginHorizontal: 16, 
  marginBottom: 8 
  }}>
- Community Reports
+ {t('feed.communityReports')}
  </Text>
  </>
  )}

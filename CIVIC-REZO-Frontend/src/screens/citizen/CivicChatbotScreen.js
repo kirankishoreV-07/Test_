@@ -16,10 +16,12 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { makeApiCall, apiClient } from '../../../config/supabase';
+import { useTranslation } from '../../i18n/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 
 const CivicChatbotScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -32,7 +34,7 @@ const CivicChatbotScreen = ({ navigation }) => {
   useEffect(() => {
     const welcomeMessage = {
       id: Date.now().toString(),
-      text: "Hello! I'm your CivicStack Assistant. I can help you with:\n\n• How to submit complaints\n• Understanding civic issues\n• App features and navigation\n• Troubleshooting problems\n• Learning about voting and priorities\n\nWhat would you like to know?",
+      text: t('chatbot.welcomeMessage'),
       isBot: true,
       timestamp: new Date(),
       type: 'welcome'
@@ -101,7 +103,7 @@ const CivicChatbotScreen = ({ navigation }) => {
           setIsLoading(false);
         }, 1000); // Simulate typing delay
       } else {
-        throw new Error(response.error || 'Failed to get response');
+        throw new Error(response.error || t('chatbot.failedToGetResponse'));
       }
     } catch (error) {
       console.error('Chatbot error:', error);
@@ -109,7 +111,7 @@ const CivicChatbotScreen = ({ navigation }) => {
       // Fallback response with helpful information
       const fallbackMessage = {
         id: (Date.now() + 1).toString(),
-        text: "I'm sorry, I'm having trouble connecting right now. Here are some quick tips:\n\n• To submit a complaint: Use the 'Submit Complaint' button on the main screen\n• To view issues: Check the 'Complaint Map' or 'Feed' tabs\n• To see your reports: Go to 'Personal Reports'\n• For urgent issues: Select 'Fire Hazard' or 'Electrical Danger' categories\n\nTry asking me again in a moment!",
+        text: t('chatbot.fallbackMessage'),
         isBot: true,
         timestamp: new Date(),
         type: 'fallback'
@@ -141,7 +143,7 @@ const CivicChatbotScreen = ({ navigation }) => {
         navigation.navigate('PersonalReports');
         break;
       default:
-        Alert.alert('Action', action.label);
+        Alert.alert(t('Action'), t(action.label));
     }
   };
 
@@ -202,7 +204,7 @@ const CivicChatbotScreen = ({ navigation }) => {
           
           {item.confidence && (
             <Text style={styles.confidenceText}>
-              Confidence: {Math.round(item.confidence * 100)}%
+              {t('chatbot.confidence')}: {Math.round(item.confidence * 100)}%
             </Text>
           )}
           
@@ -248,12 +250,12 @@ const CivicChatbotScreen = ({ navigation }) => {
   };
 
   const quickSuggestions = [
-    { text: "How to submit a complaint?", icon: "document-text" },
-    { text: "What civic issues can I report?", icon: "help-circle" },
-    { text: "How does voting work?", icon: "thumbs-up" },
-    { text: "App features overview", icon: "apps" },
-    { text: "Troubleshooting help", icon: "construct" },
-    { text: "Emergency reporting", icon: "warning" }
+    { text: t('chatbot.suggestions.submitComplaint'), icon: 'document-text' },
+    { text: t('chatbot.suggestions.civicIssues'), icon: 'help-circle' },
+    { text: t('chatbot.suggestions.voting'), icon: 'thumbs-up' },
+    { text: t('chatbot.suggestions.features'), icon: 'apps' },
+    { text: t('chatbot.suggestions.troubleshooting'), icon: 'construct' },
+    { text: t('chatbot.suggestions.emergency'), icon: 'warning' }
   ];
 
   const handleQuickSuggestion = (suggestion) => {
@@ -276,9 +278,9 @@ const CivicChatbotScreen = ({ navigation }) => {
         <View style={styles.headerContent}>
           <MaterialCommunityIcons name="robot" size={28} color="#fff" />
           <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>CivicStack Assistant</Text>
+            <Text style={styles.headerTitle}>{t('chatbot.title')}</Text>
             <Text style={styles.headerSubtitle}>
-              {isLoading ? 'Thinking...' : 'Always here to help'}
+              {isLoading ? t('chatbot.thinking') : t('chatbot.alwaysHere')}
             </Text>
           </View>
         </View>
@@ -302,7 +304,7 @@ const CivicChatbotScreen = ({ navigation }) => {
       {/* Quick Suggestions (shown when no messages) */}
       {messages.length <= 1 && (
         <View style={styles.suggestionsContainer}>
-          <Text style={styles.suggestionsTitle}>Quick Questions</Text>
+          <Text style={styles.suggestionsTitle}>{t('chatbot.quickQuestions')}</Text>
           <View style={styles.suggestionsGrid}>
             {quickSuggestions.map((suggestion, index) => (
               <TouchableOpacity
@@ -323,7 +325,7 @@ const CivicChatbotScreen = ({ navigation }) => {
         <View style={styles.inputWrapper}>
           <TextInput
             style={styles.textInput}
-            placeholder="Ask me about the app or civic issues..."
+            placeholder={t('chatbot.placeholder')}
             placeholderTextColor="#999"
             value={inputText}
             onChangeText={setInputText}

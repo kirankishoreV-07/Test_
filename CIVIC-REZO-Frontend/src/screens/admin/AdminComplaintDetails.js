@@ -346,10 +346,6 @@ const AdminComplaintDetails = ({ route, navigation }) => {
                 <Ionicons name="analytics-outline" size={20} color="#1A1A1A" />
                 <Text style={styles.predictionTitle}>Environmental Impact Analysis</Text>
               </View>
-              <View style={styles.aiBadge}>
-                <Ionicons name="sparkles" size={11} color="#fff" />
-                <Text style={styles.aiBadgeText}>AI Generated</Text>
-              </View>
             </View>
 
             {/* Score Ring + Metrics Row */}
