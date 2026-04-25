@@ -48,6 +48,7 @@ const getGuestVoteStatus = async (complaintId) => {
 import NewsCarousel from '../../components/NewsCarousel';
 import NewsCard from '../../components/NewsCard';
 import NewsService from '../../services/NewsService';
+import WeatherWidget from '../../components/WeatherWidget';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width;
@@ -795,9 +796,11 @@ const InstagramStyleFeedScreen = ({ navigation }) => {
 
   const renderHeader = () => {
     return (
-      <View style={styles.storiesContainer}>
-        <ScrollView 
-          horizontal 
+      <View>
+        <WeatherWidget />
+        <View style={styles.storiesContainer}>
+          <ScrollView 
+            horizontal 
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.storiesScrollView}
         >
@@ -867,6 +870,7 @@ const InstagramStyleFeedScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        </View>
       </View>
     );
   };
@@ -1249,9 +1253,11 @@ const InstagramStyleFeedScreen = ({ navigation }) => {
               console.log(' Rendering ListHeaderComponent');
               console.log(' Top news length:', topNews.length);
               console.log(' Top news:', topNews.map(n => n.headline));
-              
               return (
               <View>
+                {/* Weather Widget */}
+                <WeatherWidget />
+                
                 {/* News Carousel */}
                 {topNews.length > 0 ? (
                   <>

@@ -25,12 +25,12 @@ MODEL_NAME = "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
 HF_TOKEN = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_API_KEY", "")
 
 if not HF_TOKEN:
-    print("❌ No HF token found. Set HF_TOKEN or HUGGING_FACE_API_KEY env var.")
+    print("[ERROR] No HF token found. Set HF_TOKEN or HUGGING_FACE_API_KEY env var.")
     sys.exit(1)
 
-print(f"🔄 Initializing InferenceClient for: {MODEL_NAME}")
+print(f"[INIT] Initializing InferenceClient for: {MODEL_NAME}")
 client = InferenceClient(provider="auto", api_key=HF_TOKEN)
-print("✅ InferenceClient ready!")
+print("[OK] InferenceClient ready!")
 
 # ---------------------------------------------------------------------------
 # Routes
@@ -75,13 +75,13 @@ def predict():
         # Sort by score descending
         results.sort(key=lambda x: x["score"], reverse=True)
 
-        print(f"📊 Prediction for '{text[:60]}': {results[0]['label']} ({results[0]['score']:.4f})")
+        print(f"[PREDICT] Prediction for '{text[:60]}': {results[0]['label']} ({results[0]['score']:.4f})")
 
         # Return in nested array format to match HF Inference API
         return jsonify([results])
 
     except Exception as e:
-        print(f"❌ Prediction error: {e}")
+        print(f"[ERROR] Prediction error: {e}")
         return jsonify({"error": str(e)}), 500
 
 

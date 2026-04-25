@@ -29,6 +29,9 @@ const AdminComplaintDetails = ({ route, navigation }) => {
   const [contractors, setContractors] = useState([]);
   const [selectedOfficer, setSelectedOfficer] = useState('');
   const [selectedContractor, setSelectedContractor] = useState('');
+  const [gradCamLoading, setGradCamLoading] = useState(false);
+  const [gradCamResult, setGradCamResult] = useState(null);
+  const [showGradCamModal, setShowGradCamModal] = useState(false);
 
   useEffect(() => {
     loadComplaintDetails();
@@ -168,6 +171,36 @@ const AdminComplaintDetails = ({ route, navigation }) => {
     }
   };
 
+  const fetchGradCamExplanation = async () => {
+    if (!complaint?.image_url) return;
+    
+    setGradCamLoading(true);
+    setShowGradCamModal(true);
+    
+    try {
+      const response = await makeApiCall(`${apiClient.baseUrl}/api/gradcam/explain/url`, {
+        method: 'POST',
+        body: JSON.stringify({
+          image_url: complaint.image_url,
+          architecture: 'resnet50'
+        })
+      });
+
+      if (response) {
+        setGradCamResult(response);
+      } else {
+        Alert.alert('Error', response.error || 'Failed to generate explanation');
+        setShowGradCamModal(false);
+      }
+    } catch (error) {
+      console.error('Grad-CAM Error:', error);
+      Alert.alert('Error', 'Failed to connect to explanation service');
+      setShowGradCamModal(false);
+    } finally {
+      setGradCamLoading(false);
+    }
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       'pending': '#1A1A1A',
@@ -291,7 +324,13 @@ const AdminComplaintDetails = ({ route, navigation }) => {
         {/* Images */}
         {complaint.image_url && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Images</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Images</Text>
+              <TouchableOpacity style={styles.explainButton} onPress={fetchGradCamExplanation}>
+                <Ionicons name="scan-outline" size={16} color="#fff" />
+                <Text style={styles.explainButtonText}>Explain AI</Text>
+              </TouchableOpacity>
+            </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <Image source={{ uri: complaint.image_url }} style={styles.complaintImage} />
             </ScrollView>
@@ -572,6 +611,51 @@ const AdminComplaintDetails = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Grad-CAM Modal */}
+      <Modal
+        visible={showGradCamModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowGradCamModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.stageModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>AI Image Explanation</Text>
+              <TouchableOpacity onPress={() => setShowGradCamModal(false)}>
+                <Ionicons name="close" size={24} color="#2c3e50" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalContent}>
+              {gradCamLoading ? (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text>Generating AI heatmap explanation...</Text>
+                </View>
+              ) : gradCamResult ? (
+                <View>
+                  <Text style={styles.explanationText}>{gradCamResult.explanation_text}</Text>
+                  {gradCamResult.overlay_base64 && (
+                    <Image
+                      source={{ uri: `data:image/png;base64,${gradCamResult.overlay_base64}` }}
+                      style={{ width: '100%', height: 250, borderRadius: 8, marginTop: 15, resizeMode: 'contain' }}
+                    />
+                  )}
+                  {gradCamResult.heatmap_base64 && (
+                    <Image
+                      source={{ uri: `data:image/png;base64,${gradCamResult.heatmap_base64}` }}
+                      style={{ width: '100%', height: 250, borderRadius: 8, marginTop: 15, resizeMode: 'contain' }}
+                    />
+                  )}
+                </View>
+              ) : (
+                <Text style={{ padding: 20 }}>No explanation generated.</Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 
@@ -982,6 +1066,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  explainButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3b82f6', // Blue color for AI explanation
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  explainButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  explanationText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#2c3e50',
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+  }
 });
 
 export default AdminComplaintDetails;

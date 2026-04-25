@@ -25,6 +25,7 @@ import FloatingChatbotButton from '../../components/FloatingChatbotButton';
 import NewsCarousel from '../../components/NewsCarousel';
 import NewsCard from '../../components/NewsCard';
 import NewsService from '../../services/NewsService';
+import WeatherWidget from '../../components/WeatherWidget';
 
 const { width } = Dimensions.get('window');
 const CARD_HEIGHT = 380;
@@ -588,6 +589,7 @@ const ComplaintFeedScreen = ({ navigation }) => {
  
  return (
  <View style={{ marginBottom: 10 }}>
+ <WeatherWidget />
  {/* News Carousel - Always at top */}
  {topNews.length > 0 ? (
  <>

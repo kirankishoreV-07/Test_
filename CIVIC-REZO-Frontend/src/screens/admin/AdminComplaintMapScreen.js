@@ -43,8 +43,49 @@ const AdminComplaintMapScreen = ({ navigation, route }) => {
   const [filterStatus, setFilterStatus] = useState('all'); // Admin filter
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [heatMapData, setHeatMapData] = useState([]);
+  const [gradCamLoading, setGradCamLoading] = useState(false);
+  const [gradCamResult, setGradCamResult] = useState(null);
+  const [showGradCamModal, setShowGradCamModal] = useState(false);
+  const [selectedImageForGradCam, setSelectedImageForGradCam] = useState(null);
   const mapRef = useRef(null);
   const regionChangeTimeoutRef = useRef(null);
+
+  // Fetch Grad-CAM Explanation
+  const fetchGradCamExplanation = async (imageUrl) => {
+    if (!imageUrl) return;
+    
+    setSelectedImageForGradCam(imageUrl);
+    setGradCamLoading(true);
+    setShowGradCamModal(true);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/gradcam/explain/url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_url: imageUrl,
+          architecture: 'resnet50'
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setGradCamResult(data);
+      } else {
+        Alert.alert('Error', data.error || 'Failed to generate explanation');
+        setShowGradCamModal(false);
+      }
+    } catch (error) {
+      console.error('Grad-CAM Error:', error);
+      Alert.alert('Error', 'Failed to connect to explanation service');
+      setShowGradCamModal(false);
+    } finally {
+      setGradCamLoading(false);
+    }
+  };
 
   // Get user's current location
   const getUserLocation = async () => {
@@ -753,12 +794,20 @@ const AdminComplaintMapScreen = ({ navigation, route }) => {
                   <Text style={styles.sectionTitle}>Images</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {selectedComplaint.image_urls.map((imageUrl, index) => (
-                      <Image 
-                        key={index}
-                        source={{ uri: imageUrl }} 
-                        style={styles.complaintImage}
-                        resizeMode="cover"
-                      />
+                      <View key={index} style={{ marginRight: 15 }}>
+                        <Image 
+                          source={{ uri: imageUrl }} 
+                          style={styles.complaintImage}
+                          resizeMode="cover"
+                        />
+                        <TouchableOpacity 
+                          style={styles.explainButtonMap} 
+                          onPress={() => fetchGradCamExplanation(imageUrl)}
+                        >
+                          <Ionicons name="scan-outline" size={16} color="#fff" />
+                          <Text style={styles.explainButtonText}>Explain AI</Text>
+                        </TouchableOpacity>
+                      </View>
                     ))}
                   </ScrollView>
                 </View>
@@ -769,6 +818,53 @@ const AdminComplaintMapScreen = ({ navigation, route }) => {
       </Modal>
     );
   };
+
+  // Grad-CAM Display Modal
+  const GradCamModal = () => (
+    <Modal
+      visible={showGradCamModal}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowGradCamModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, { width: '90%' }]}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>AI Image Explanation</Text>
+            <TouchableOpacity onPress={() => setShowGradCamModal(false)}>
+              <Ionicons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ maxHeight: 500 }}>
+            {gradCamLoading ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#1A1A1A" />
+                <Text style={{ marginTop: 10 }}>Generating AI heatmap explanation...</Text>
+              </View>
+            ) : gradCamResult ? (
+              <View style={{ padding: 10 }}>
+                <Text style={styles.explanationText}>{gradCamResult.explanation_text}</Text>
+                {gradCamResult.overlay_base64 && (
+                  <Image
+                    source={{ uri: `data:image/png;base64,${gradCamResult.overlay_base64}` }}
+                    style={{ width: '100%', height: 250, borderRadius: 8, marginTop: 15, resizeMode: 'contain' }}
+                  />
+                )}
+                {gradCamResult.heatmap_base64 && (
+                  <Image
+                    source={{ uri: `data:image/png;base64,${gradCamResult.heatmap_base64}` }}
+                    style={{ width: '100%', height: 250, borderRadius: 8, marginTop: 15, resizeMode: 'contain' }}
+                  />
+                )}
+              </View>
+            ) : (
+              <Text style={{ padding: 20 }}>No explanation generated.</Text>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
     <View style={styles.container}>
@@ -1012,6 +1108,7 @@ const AdminComplaintMapScreen = ({ navigation, route }) => {
 
       <FilterModal />
       <AdminComplaintDetailsModal />
+      <GradCamModal />
     </View>
   );
 };
@@ -1478,6 +1575,32 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 8,
   },
+  explainButtonMap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  explainButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  explanationText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#2c3e50',
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+  }
 });
 
 export default AdminComplaintMapScreen;
