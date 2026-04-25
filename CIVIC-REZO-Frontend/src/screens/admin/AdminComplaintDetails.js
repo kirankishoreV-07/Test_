@@ -337,6 +337,118 @@ const AdminComplaintDetails = ({ route, navigation }) => {
           </View>
         )}
 
+        {/* ── Environmental Impact Analysis ── */}
+        {complaint.environmental_impact_score != null && (
+          <View style={styles.predictionSection}>
+            {/* Header */}
+            <View style={styles.predictionHeader}>
+              <View style={styles.predictionHeaderLeft}>
+                <Ionicons name="analytics-outline" size={20} color="#1A1A1A" />
+                <Text style={styles.predictionTitle}>Environmental Impact Analysis</Text>
+              </View>
+              <View style={styles.aiBadge}>
+                <Ionicons name="sparkles" size={11} color="#fff" />
+                <Text style={styles.aiBadgeText}>AI Generated</Text>
+              </View>
+            </View>
+
+            {/* Score Ring + Metrics Row */}
+            <View style={styles.predictionMetricsRow}>
+              {/* Impact Score Gauge */}
+              <View style={styles.scoreGaugeBox}>
+                <View style={[
+                  styles.scoreCircle,
+                  {
+                    borderColor:
+                      complaint.environmental_impact_score >= 80 ? '#ef4444' :
+                      complaint.environmental_impact_score >= 60 ? '#f97316' :
+                      complaint.environmental_impact_score >= 40 ? '#eab308' : '#22c55e'
+                  }
+                ]}>
+                  <Text style={[
+                    styles.scoreNumber,
+                    {
+                      color:
+                        complaint.environmental_impact_score >= 80 ? '#ef4444' :
+                        complaint.environmental_impact_score >= 60 ? '#f97316' :
+                        complaint.environmental_impact_score >= 40 ? '#eab308' : '#22c55e'
+                    }
+                  ]}>
+                    {complaint.environmental_impact_score}
+                  </Text>
+                  <Text style={styles.scoreOutOf}>/100</Text>
+                </View>
+                <Text style={styles.scoreLabel}>Impact Score</Text>
+              </View>
+
+              {/* Divider */}
+              <View style={styles.metricsDivider} />
+
+              {/* Right side metrics */}
+              <View style={styles.metricsRight}>
+                <View style={styles.metricRow}>
+                  <Ionicons name="trending-down-outline" size={16} color="#f97316" />
+                  <View style={styles.metricTextBlock}>
+                    <Text style={styles.metricValue}>{complaint.degradation_percentage}%</Text>
+                    <Text style={styles.metricLabel}>Est. Degradation</Text>
+                  </View>
+                </View>
+                <View style={styles.metricRow}>
+                  <Ionicons name="timer-outline" size={16} color="#ef4444" />
+                  <View style={styles.metricTextBlock}>
+                    <Text style={styles.metricValue}>{complaint.predicted_days_until_critical} days</Text>
+                    <Text style={styles.metricLabel}>Until Critical</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Severity Bar */}
+            <View style={styles.severityBarContainer}>
+              <View style={styles.severityBarTrack}>
+                <View style={[
+                  styles.severityBarFill,
+                  {
+                    width: `${complaint.environmental_impact_score}%`,
+                    backgroundColor:
+                      complaint.environmental_impact_score >= 80 ? '#ef4444' :
+                      complaint.environmental_impact_score >= 60 ? '#f97316' :
+                      complaint.environmental_impact_score >= 40 ? '#eab308' : '#22c55e'
+                  }
+                ]} />
+              </View>
+              <Text style={styles.severityLabel}>
+                {complaint.environmental_impact_score >= 80 ? '🔴 Critical Risk' :
+                 complaint.environmental_impact_score >= 60 ? '🟠 High Risk' :
+                 complaint.environmental_impact_score >= 40 ? '🟡 Moderate Risk' : '🟢 Low Risk'}
+              </Text>
+            </View>
+
+            {/* Prediction Text */}
+            {complaint.prediction_text && (
+              <View style={styles.predictionTextBox}>
+                <Ionicons name="document-text-outline" size={14} color="#6B7280" style={{ marginTop: 1 }} />
+                <Text style={styles.predictionText}>{complaint.prediction_text}</Text>
+              </View>
+            )}
+
+            {/* Key Risks Chips */}
+            {complaint.key_risks && complaint.key_risks.length > 0 && (
+              <View style={styles.risksContainer}>
+                <Text style={styles.risksLabel}>Key Risks</Text>
+                <View style={styles.risksChips}>
+                  {complaint.key_risks.map((risk, i) => (
+                    <View key={i} style={styles.riskChip}>
+                      <Ionicons name="warning-outline" size={11} color="#b91c1c" />
+                      <Text style={styles.riskChipText}>{risk}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Progress Overview */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Progress Overview</Text>
@@ -1089,7 +1201,186 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 4,
     borderLeftColor: '#3b82f6',
-  }
+  },
+
+  // ── Environmental Impact Analysis styles ──
+  predictionSection: {
+    backgroundColor: '#fff',
+    marginHorizontal: 15,
+    marginVertical: 8,
+    padding: 16,
+    borderRadius: 14,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  predictionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  predictionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  predictionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginLeft: 6,
+  },
+  aiBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 4,
+  },
+  aiBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
+    marginLeft: 3,
+  },
+  predictionMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  scoreGaugeBox: {
+    alignItems: 'center',
+    width: 90,
+  },
+  scoreCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+    marginBottom: 6,
+  },
+  scoreNumber: {
+    fontSize: 22,
+    fontWeight: '800',
+    includeFontPadding: false,
+  },
+  scoreOutOf: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  scoreLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  metricsDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 16,
+  },
+  metricsRight: {
+    flex: 1,
+    gap: 10,
+  },
+  metricRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  metricTextBlock: {
+    marginLeft: 4,
+  },
+  metricValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  severityBarContainer: {
+    marginBottom: 14,
+  },
+  severityBarTrack: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  severityBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  severityLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  predictionTextBox: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: '#6366f1',
+  },
+  predictionText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#374151',
+    fontStyle: 'italic',
+  },
+  risksContainer: {
+    marginTop: 2,
+  },
+  risksLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  risksChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  riskChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    gap: 4,
+  },
+  riskChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#b91c1c',
+    marginLeft: 2,
+  },
 });
 
 export default AdminComplaintDetails;

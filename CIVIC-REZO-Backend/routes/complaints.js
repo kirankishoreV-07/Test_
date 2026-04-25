@@ -3,6 +3,7 @@ const router = express.Router();
 const { supabase } = require('../config/supabase');
 const LocationPriorityService = require('../services/LocationPriorityService');
 const XSocialSignalService = require('../services/XSocialSignalService');
+const { generatePrediction } = require('../services/PredictionService');
 
 // Initialize services
 const locationPriorityService = new LocationPriorityService();
@@ -371,6 +372,40 @@ router.post('/submit', async (req, res) => {
         } catch (voteErr) {
           console.error('❌ Exception in complaint vote creation:', voteErr);
         }
+
+        // 3. Fire-and-forget: generate prediction asynchronously (non-blocking)
+        setImmediate(async () => {
+          try {
+            console.log(`🔮 Triggering async prediction for complaint ${complaintId}...`);
+            const prediction = await generatePrediction({
+              category,
+              confidence: imageValidation?.confidence || imageValidation?.modelConfidence || 0.75,
+              locationData,
+              lat: locationData?.latitude,
+              lon: locationData?.longitude,
+            });
+
+            const { error: predError } = await supabase
+              .from('complaints')
+              .update({
+                prediction_text:               prediction.prediction_text,
+                environmental_impact_score:    prediction.environmental_impact_score,
+                degradation_percentage:        prediction.degradation_percentage,
+                predicted_days_until_critical: prediction.predicted_days_until_critical,
+                key_risks:                     prediction.key_risks,
+                updated_at:                    new Date().toISOString(),
+              })
+              .eq('id', complaintId);
+
+            if (predError) {
+              console.error('❌ Failed to store prediction:', predError.message);
+            } else {
+              console.log(`✅ Prediction stored for complaint ${complaintId}`);
+            }
+          } catch (predErr) {
+            console.error('❌ Prediction generation error:', predErr.message);
+          }
+        });
       }
     } catch (dbError) {
       console.error('❌ Database operation failed:', dbError);
