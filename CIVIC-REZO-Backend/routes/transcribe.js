@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegStatic = require('ffmpeg-static');
-require('dotenv').config();
+require('dotenv').config({ override: true });
 
 // Set FFmpeg path
 ffmpeg.setFfmpegPath(ffmpegStatic);
@@ -86,18 +86,18 @@ router.post('/audio', upload.single('audio'), async (req, res) => {
     async function translateText(text, sourceLanguage, targetLanguage) {
       try {
         console.log(`Translating text from ${sourceLanguage} to ${targetLanguage}: "${text}"`);
-        const textTranslateFormData = new FormData();
-        textTranslateFormData.append('input_text', text);
-        textTranslateFormData.append('source_lang', sourceLanguage.split('-')[0]);
-        textTranslateFormData.append('target_lang', targetLanguage);
-
         const textTranslateResponse = await axios.post(
-          'https://api.sarvam.ai/v2/languages/translate',
-          textTranslateFormData,
+          'https://api.sarvam.ai/translate',
+          {
+            input: text,
+            source_language_code: sourceLanguage.includes('-') ? sourceLanguage : `${sourceLanguage}-IN`,
+            target_language_code: targetLanguage.includes('-') ? targetLanguage : `${targetLanguage}-IN`,
+            model: 'sarvam-translate:v1'
+          },
           {
             headers: {
-              ...textTranslateFormData.getHeaders(),
-              'api-subscription-key': process.env.SARVAM_API_KEY
+              'api-subscription-key': process.env.SARVAM_API_KEY,
+              'Content-Type': 'application/json'
             },
             timeout: 20000
           }
@@ -105,8 +105,8 @@ router.post('/audio', upload.single('audio'), async (req, res) => {
 
         console.log('Text translation response:', textTranslateResponse.data);
 
-        if (textTranslateResponse.data && textTranslateResponse.data.text) {
-          translation = textTranslateResponse.data.text;
+        if (textTranslateResponse.data && textTranslateResponse.data.translated_text) {
+          translation = textTranslateResponse.data.translated_text;
           console.log('Text translation successful:', translation);
           return translation;
         }
@@ -218,8 +218,8 @@ router.post('/audio', upload.single('audio'), async (req, res) => {
         contentType: 'audio/wav' // Now guaranteed to be WAV format
       });
 
-      // Use the correct model name for Sarvam API (based on our test)
-      transcribeFormData.append('model', 'saarika:v2.5');
+      // Use the correct model name for Sarvam API (saaras:v3 is recommended)
+      transcribeFormData.append('model', 'saaras:v3');
 
       // Map language codes to Sarvam format - they expect format like 'ta-IN', 'en-IN' etc.
       const languageMapping = {
@@ -237,14 +237,14 @@ router.post('/audio', upload.single('audio'), async (req, res) => {
       };
 
       const sarvamLanguage = languageMapping[language] || 'ta-IN';
-      // Use 'language' parameter (not 'language_code') as per API specification
-      transcribeFormData.append('language', sarvamLanguage);
+      // Use 'language_code' parameter as per latest API specification
+      transcribeFormData.append('language_code', sarvamLanguage);
 
       // Make request to Sarvam API for transcription
       console.log('Calling Sarvam API for transcription...');
       console.log('Using Sarvam API Key:', process.env.SARVAM_API_KEY ? 'Key is set' : 'Key is missing');
       console.log('Language code for Sarvam:', sarvamLanguage);
-      console.log('Model: saarika:v2.5');
+      console.log('Model: saaras:v3');
       console.log('File path:', finalAudioPath);
       console.log('File size:', fs.statSync(finalAudioPath).size, 'bytes');
 
