@@ -68,18 +68,24 @@ Scroll down to the **Environment Variables** section and add these variables one
 ```
 NODE_ENV = production
 PORT = 3001
-JWT_SECRET = civic-rezo-super-secret-jwt-key-2026
-SUPABASE_URL = https://edragfuoklcgdgtospuq.supabase.co
-SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkcmFnZnVva2xjZ2RndG9zcHVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NDE3MjMsImV4cCI6MjA3MjExNzcyM30.A58Ms03zTZC6J5OuhQbkkZQy-5uTxgu4vlLilrjPEwo
-ROBOFLOW_API_KEY = dRfPw6fcbBzHQ2lhg7cc
-ROBOFLOW_WORKSPACE = civicrezo
-ROBOFLOW_WORKFLOW = custom-workflow-8
+JWT_SECRET = your_super_secret_jwt_key_here
+SUPABASE_URL = https://your-project.supabase.co
+SUPABASE_ANON_KEY = your_supabase_anon_key
+ROBOFLOW_API_KEY = your_roboflow_api_key
+ROBOFLOW_WORKSPACE = your_roboflow_workspace
+ROBOFLOW_WORKFLOW = your_roboflow_workflow
 ROBOFLOW_API_URL = https://serverless.roboflow.com
-ROBOFLOW_MODEL_ENDPOINT = https://serverless.roboflow.com/infer/workflows/civicrezo/custom-workflow-8
+ROBOFLOW_MODEL_ENDPOINT = https://serverless.roboflow.com/infer/workflows/your_workspace/your_workflow
 OPENAI_API_KEY = your_openai_api_key_here
 CLOUDINARY_CLOUD_NAME = your_cloudinary_cloud_name
 CLOUDINARY_API_KEY = your_cloudinary_api_key
 CLOUDINARY_API_SECRET = your_cloudinary_api_secret
+GEMINI_API_KEY = your_gemini_api_key_here
+HUGGING_FACE_API_KEY = your_hugging_face_api_key_here
+X_CONSUMER_KEY = your_x_consumer_key
+X_CONSUMER_SECRET = your_x_consumer_secret
+X_BEARER_TOKEN = your_x_bearer_token
+TWITTER_BEARER_TOKEN = your_twitter_bearer_token_alias
 USE_OPENSTREETMAP = true
 NOMINATIM_URL = https://nominatim.openstreetmap.org
 OVERPASS_URL = https://overpass-api.de/api/interpreter
@@ -90,8 +96,8 @@ LOCATION_CACHE_DURATION = 86400
 ENABLE_LOCATION_FALLBACK = true
 PLACES_API_RATE_LIMIT = 100
 GEOCODING_API_RATE_LIMIT = 50
-WIT_AI_TOKEN = DLHJZZTU2ZXDLJW2PB5E3IMCHYPKAUSZ
-SARVAM_API_KEY = sk_2xnkkrid_QkpU1rOIZDj5bsUxtbaZhaaB
+WIT_AI_TOKEN = your_wit_ai_token_here
+SARVAM_API_KEY = your_sarvam_api_key_here
 QUICK_DEV_MODE = false
 ```
 
