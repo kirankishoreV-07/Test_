@@ -414,12 +414,14 @@ const SubmitComplaintScreen = ({ navigation }) => {
  }
  } catch (error) {
  console.error(' Image validation error:', error);
+ // Clear image — do NOT allow skipping validation
+ setSelectedImage(null);
+ setImageValidation(null);
  Alert.alert(
  'Validation Error',
- 'Failed to validate image. Please check your connection and try again.',
+ 'Failed to validate image. Please check your connection and select another image.',
  [
- { text: 'Retry', onPress: () => validateImage(imageAsset) },
- { text: 'Skip Validation', style: 'destructive' }
+ { text: 'OK' }
  ]
  );
  } finally {
@@ -503,12 +505,23 @@ const SubmitComplaintScreen = ({ navigation }) => {
  return;
  }
 
- if (imageValidation && !imageValidation.allowUpload) {
+ if (!imageValidation) {
  Alert.alert(
- 'Image Validation Failed',
- `Confidence Score: ${(imageValidation.confidence * 100).toFixed(1)}%\n\nThe selected image does not appear to show a valid civic issue. Please change the image before submitting.`,
+ '⚠️ Image Not Validated',
+ 'Your image could not be validated. Please select your image again.',
  [
- { text: 'Change Image', onPress: () => setSelectedImage(null) }
+ { text: 'OK', onPress: () => { setSelectedImage(null); setImageValidation(null); } }
+ ]
+ );
+ return;
+ }
+
+ if (!imageValidation.allowUpload) {
+ Alert.alert(
+ '❌ Invalid Image',
+ `Confidence Score: ${(imageValidation.confidence * 100).toFixed(1)}%\n\nThe selected image does not show a valid civic issue. Please change the image.`,
+ [
+ { text: 'Change Image', onPress: () => { setSelectedImage(null); setImageValidation(null); } }
  ]
  );
  return;

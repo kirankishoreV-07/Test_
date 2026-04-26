@@ -1100,12 +1100,13 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
 
       } catch (error) {
         console.error('❌ Image validation error:', error);
+        // Clear the image so user must re-upload — do NOT allow skipping validation
+        setComplaintData(prev => ({ ...prev, selectedImage: null, imageValidation: null }));
         Alert.alert(
           'Validation Error',
           'Failed to validate image. Please check your connection and try again.',
           [
-            { text: 'Retry', onPress: () => validateImage(imageAsset) },
-            { text: 'Skip Validation', style: 'destructive' }
+            { text: 'OK' }
           ]
         );
       } finally {
@@ -1119,10 +1120,21 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
         return;
       }
 
-      if (complaintData.imageValidation && !complaintData.imageValidation.allowUpload) {
+      if (!complaintData.imageValidation) {
         Alert.alert(
-          'Image Validation Failed',
-          `The selected image does not appear to show a valid civic issue. Please change the image before submitting.`,
+          '⚠️ Image Not Validated',
+          'Your image could not be validated. Please select your image again.',
+          [
+            { text: 'OK', onPress: () => setComplaintData(prev => ({ ...prev, selectedImage: null, imageValidation: null })) }
+          ]
+        );
+        return;
+      }
+
+      if (!complaintData.imageValidation.allowUpload) {
+        Alert.alert(
+          '❌ Invalid Image',
+          'The selected image does not show a valid civic issue. Please change the image before submitting.',
           [
             { text: 'Change Image', onPress: () => setComplaintData(prev => ({ ...prev, selectedImage: null, imageValidation: null })) }
           ]
@@ -1327,10 +1339,10 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.submitButton,
-              (loading || validatingImage || !complaintData.selectedImage) && styles.submitButtonDisabled
+              (loading || validatingImage || !complaintData.selectedImage || !complaintData.imageValidation || !complaintData.imageValidation.allowUpload) && styles.submitButtonDisabled
             ]}
             onPress={handleSubmit}
-            disabled={loading || validatingImage || !complaintData.selectedImage}
+            disabled={loading || validatingImage || !complaintData.selectedImage || !complaintData.imageValidation || !complaintData.imageValidation.allowUpload}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
