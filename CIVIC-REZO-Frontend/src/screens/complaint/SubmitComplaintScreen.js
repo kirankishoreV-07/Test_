@@ -397,10 +397,9 @@ const SubmitComplaintScreen = ({ navigation }) => {
  } else {
  Alert.alert(
  'Image Validation Failed',
- `Confidence Score: ${(displayConfidence * 100).toFixed(1)}%\nThe selected image does not appear to show a valid civic issue. Please select a different image.`,
+ `Confidence Score: ${(displayConfidence * 100).toFixed(1)}%\nThe selected image does not appear to show a valid civic issue. Please select a different image showing the actual problem.`,
  [
- { text: 'Change Image', onPress: () => setSelectedImage(null) },
- { text: 'Submit Anyway', style: 'destructive' }
+ { text: 'Change Image', onPress: () => setSelectedImage(null) }
  ]
  );
  }
@@ -409,8 +408,7 @@ const SubmitComplaintScreen = ({ navigation }) => {
  ' Image Validation Failed',
  result.message || 'Validation failed.',
  [
- { text: 'Try Again', onPress: () => setSelectedImage(null) },
- { text: 'Keep Anyway', style: 'destructive' }
+ { text: 'Change Image', onPress: () => setSelectedImage(null) }
  ]
  );
  }
@@ -508,10 +506,9 @@ const SubmitComplaintScreen = ({ navigation }) => {
  if (imageValidation && !imageValidation.allowUpload) {
  Alert.alert(
  'Image Validation Failed',
- `Confidence Score: ${(imageValidation.confidence * 100).toFixed(1)}%\n\nThe selected image does not appear to show a valid civic issue. You can still submit anyway for urgent issues.`,
+ `Confidence Score: ${(imageValidation.confidence * 100).toFixed(1)}%\n\nThe selected image does not appear to show a valid civic issue. Please change the image before submitting.`,
  [
- { text: 'Change Image', onPress: () => setSelectedImage(null) },
- { text: 'Submit Anyway', style: 'destructive', onPress: () => proceedWithSubmission() }
+ { text: 'Change Image', onPress: () => setSelectedImage(null) }
  ]
  );
  return;

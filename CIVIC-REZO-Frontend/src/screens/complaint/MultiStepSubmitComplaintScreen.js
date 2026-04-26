@@ -1093,8 +1093,7 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
             '❌ Image Validation Failed',
             `Confidence Score: ${(displayConfidence * 100).toFixed(1)}%\n\nThe selected image does not appear to show a valid civic issue. Please select a different image showing the actual problem.`,
             [
-              { text: 'Change Image', onPress: () => setComplaintData(prev => ({ ...prev, selectedImage: null, imageValidation: null })) },
-              { text: 'Submit Anyway', style: 'destructive' }
+              { text: 'Change Image', onPress: () => setComplaintData(prev => ({ ...prev, selectedImage: null, imageValidation: null })) }
             ]
           );
         }
@@ -1123,10 +1122,9 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
       if (complaintData.imageValidation && !complaintData.imageValidation.allowUpload) {
         Alert.alert(
           'Image Validation Failed',
-          `The selected image does not appear to show a valid civic issue. You can still submit anyway for urgent issues.`,
+          `The selected image does not appear to show a valid civic issue. Please change the image before submitting.`,
           [
-            { text: 'Change Image', onPress: () => setComplaintData(prev => ({ ...prev, selectedImage: null, imageValidation: null })) },
-            { text: 'Submit Anyway', style: 'destructive', onPress: () => submitComplaint() }
+            { text: 'Change Image', onPress: () => setComplaintData(prev => ({ ...prev, selectedImage: null, imageValidation: null })) }
           ]
         );
         return;

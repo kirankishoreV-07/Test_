@@ -11,146 +11,68 @@ class NewsService {
     this.CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
     this.LOCATION_CACHE_DURATION = 60 * 60 * 1000; // 1 hour
     
-    // News API configuration - Force real API
-    this.NEWS_API_KEY = 'a7c4dd34b48e43ef843e3a9e9743b0b0'; // Direct hardcoded API key
+    // News API configuration
+    this.NEWS_API_KEY = 'a7c4dd34b48e43ef843e3a9e9743b0b0';
     this.NEWS_API_URL = 'https://newsapi.org/v2';
-    this.USE_REAL_API = true; // Always use real API
-    
-    // Debug logging
-    console.log('🔧 NewsService Configuration:');
-    console.log('API Key:', this.NEWS_API_KEY.substring(0, 8) + '...');
-    console.log('API URL:', this.NEWS_API_URL);
-    console.log('USE_REAL_API:', this.USE_REAL_API);
-    
-    console.log(`📰 NewsService initialized with REAL API (hardcoded)`);
+    this.USE_REAL_API = true;
   }
 
   // Get real news from NewsAPI based on location
   async getRealNews(userLocation = null, category = null) {
     try {
-      console.log('📰 getRealNews called - Starting real API fetch');
-      console.log('📰 API Key:', this.NEWS_API_KEY.substring(0, 8) + '...');
-
       // Get user location if not provided
       if (!userLocation) {
         try {
-          console.log('📰 Getting user location...');
           userLocation = await LocationService.getCurrentLocation();
-          console.log('📰 Location obtained:', userLocation);
         } catch (error) {
-          console.log('📰 Could not get location, using India as default');
           userLocation = { city: null, region: null, country: 'India' };
         }
       }
 
-      // SIMPLIFIED DEBUG - Use both civic and general queries
-      console.log('📰 DEBUG: Using combined civic and general news query');
-      let apiUrl = `${this.NEWS_API_URL}/top-headlines?country=in&pageSize=20&apiKey=${this.NEWS_API_KEY}`;
-      
-      // Try specific civic query as fallback
+      const apiUrl = `${this.NEWS_API_URL}/top-headlines?country=in&pageSize=20&apiKey=${this.NEWS_API_KEY}`;
       const civicQuery = 'infrastructure OR hospital OR school OR road OR public OR government OR municipal OR civic OR health OR education OR transport';
       const fallbackUrl = `${this.NEWS_API_URL}/everything?q=${encodeURIComponent(civicQuery)}&language=en&sortBy=publishedAt&pageSize=20&apiKey=${this.NEWS_API_KEY}`;
 
-      console.log('📰 Primary API URL:', apiUrl);
-      console.log('📰 Civic Fallback URL:', fallbackUrl);
-      console.log('📰 Fetching from NewsAPI...');
-      
-      // Try without User-Agent header first (React Native limitation)
       const response = await fetch(apiUrl, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
+        headers: { 'Accept': 'application/json' }
       });
-      console.log('📰 API Response status:', response.status);
-      
+
       if (!response.ok) {
-        console.log('📰 Primary API failed, trying fallback...');
         const fallbackResponse = await fetch(fallbackUrl, {
           method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          }
+          headers: { 'Accept': 'application/json' }
         });
-        console.log('📰 Fallback Response status:', fallbackResponse.status);
-        
+
+        // If rate-limited (429), silently return placeholder news
         if (!fallbackResponse.ok) {
+          if (response.status === 429 || fallbackResponse.status === 429) {
+            return this.getPlaceholderNews();
+          }
           throw new Error(`Both API calls failed: ${response.status} and ${fallbackResponse.status}`);
         }
-        
+
         const fallbackData = await fallbackResponse.json();
-        console.log('📰 Fallback API Response data:', fallbackData.status, 'Total Results:', fallbackData.totalResults);
-        
         if (fallbackData.status !== 'ok') {
           throw new Error(`Fallback NewsAPI error: ${fallbackData.message || 'Unknown error'}`);
         }
-        
-        const transformedNews = this.transformNewsAPIData(fallbackData.articles, userLocation);
-        console.log(`📰 SUCCESS (fallback): Fetched ${transformedNews.length} news articles`);
-        return transformedNews;
-      }
-      
-      if (!response.ok) {
-        console.log('📰 Response not OK, status:', response.status);
-        const errorText = await response.text();
-        console.log('📰 Error response:', errorText);
-        throw new Error(`NewsAPI error: ${response.status} ${response.statusText}`);
+
+        return this.transformNewsAPIData(fallbackData.articles, userLocation);
       }
 
       const data = await response.json();
-      console.log('📰 API Response data:', data.status, 'Total Results:', data.totalResults);
-      
       if (data.status !== 'ok') {
-        console.log('📰 API status not OK:', data.message);
         throw new Error(`NewsAPI error: ${data.message || 'Unknown error'}`);
       }
 
-      // Check if we have articles - if not, try fallback searches
       if (!data.articles || data.articles.length === 0) {
-        console.log('📰 No articles in primary response, trying fallback searches...');
-        throw new Error('No articles in primary response - triggering fallback');
+        throw new Error('No articles in primary response');
       }
 
-      // Transform NewsAPI data to our format
-      const transformedNews = this.transformNewsAPIData(data.articles, userLocation);
-      
-      console.log(`📰 SUCCESS: Fetched ${transformedNews.length} real news articles`);
-      console.log('📰 Sample headlines:', transformedNews.slice(0, 3).map(n => n.headline));
-      return transformedNews;
+      return this.transformNewsAPIData(data.articles, userLocation);
 
     } catch (error) {
-      console.error('📰 Primary API call failed:', error.message);
-      
-      // Try multiple fallback approaches
-      const fallbackQueries = [
-        { name: 'India Search', url: `${this.NEWS_API_URL}/everything?apiKey=${this.NEWS_API_KEY}&q=India&language=en&sortBy=publishedAt&pageSize=20` },
-        { name: 'General News', url: `${this.NEWS_API_URL}/everything?apiKey=${this.NEWS_API_KEY}&q=news&language=en&sortBy=publishedAt&pageSize=20` },
-        { name: 'Technology', url: `${this.NEWS_API_URL}/everything?apiKey=${this.NEWS_API_KEY}&q=technology&language=en&sortBy=publishedAt&pageSize=20` },
-        { name: 'US Headlines', url: `${this.NEWS_API_URL}/top-headlines?country=us&pageSize=20&apiKey=${this.NEWS_API_KEY}` }
-      ];
-      
-      for (const fallback of fallbackQueries) {
-        try {
-          console.log(`📰 Trying ${fallback.name}...`);
-          const fallbackResponse = await fetch(fallback.url, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }
-          });
-          
-          if (fallbackResponse.ok) {
-            const fallbackData = await fallbackResponse.json();
-            if (fallbackData.status === 'ok' && fallbackData.articles && fallbackData.articles.length > 0) {
-              console.log(`📰 ${fallback.name} SUCCESS: Got ${fallbackData.articles.length} articles`);
-              const transformedNews = this.transformNewsAPIData(fallbackData.articles, userLocation || { country: 'India' });
-              return transformedNews;
-            }
-          }
-        } catch (fallbackError) {
-          console.error(`📰 ${fallback.name} failed:`, fallbackError.message);
-        }
-      }
-      
-      console.log('📰 ALL FALLBACK ATTEMPTS FAILED - Returning placeholder news');
+      // Silently fall back to placeholder news — no red screen in Expo Go
       return this.getPlaceholderNews();
     }
   }
@@ -433,70 +355,46 @@ class NewsService {
   // Get fresh location-based news using real API (NO Delhi context)
   async getLocationNews() {
     try {
-      // Clear cache to always fetch fresh real news
-      console.log('📰 FORCING FRESH NEWS FETCH - Clearing cache');
       this.cache = null;
       this.lastFetchTime = null;
 
-      console.log('📰 Fetching fresh location-based news (NOT Delhi-specific)...');
-      
-      // Try to get user location for location-based news
       let userLocation = null;
       try {
         userLocation = await LocationService.getCurrentLocation();
-        console.log(`📰 Got user location: ${(userLocation && userLocation.city) || (userLocation && userLocation.region) || 'Unknown'}`);
       } catch (error) {
-        console.log('📰 Could not get user location, using default');
+        // Location unavailable, proceed without it
       }
 
-      // FORCE REAL NEWS API - NO CACHE, NO FALLBACKS
       const newsData = await this.getRealNews(userLocation);
 
-      console.log(`📰 SUCCESS: Fetched ${newsData ? newsData.length : 0} REAL news articles`);
-      
       return {
         success: true,
         news: newsData || [],
-        source: 'real-newsapi-forced',
+        source: 'real-newsapi',
         location: (userLocation && userLocation.city) || (userLocation && userLocation.region) || 'India'
       };
     } catch (error) {
-      console.error('❌ Real news API failed:', error);
-      console.log('📰 Using placeholder news as fallback');
-      
       const placeholderNews = this.getPlaceholderNews();
-      
       return {
         success: true,
         news: placeholderNews,
         source: 'placeholder-fallback',
-        location: 'Delhi',
-        note: 'Using local news due to API unavailability'
+        location: 'India'
       };
     }
   }
 
   // Get top priority news for carousel (increased to 10 articles)
   async getTopNews(limit = 10) {
-    console.log(`📰 getTopNews called with limit: ${limit}`);
     try {
-      console.log('📰 Calling getLocationNews...');
       const result = await this.getLocationNews();
-      console.log('📰 getLocationNews result:', result.success, result.news?.length || 0, 'articles');
-      
+
       if (!result.success || !result.news || result.news.length === 0) {
-        console.log('📰 No news available from getLocationNews, using placeholder directly');
         const placeholderNews = this.getPlaceholderNews();
-        console.log(`📰 Returning ${placeholderNews.slice(0, limit).length} placeholder articles`);
-        return { 
-          success: true, 
-          news: placeholderNews.slice(0, limit),
-          source: 'placeholder-direct'
-        };
+        return { success: true, news: placeholderNews.slice(0, limit), source: 'placeholder-direct' };
       }
 
-      // Filter for civic-related news first
-      const civicNews = result.news.filter(article => 
+      const civicNews = result.news.filter(article =>
         article.category === 'Infrastructure' ||
         article.category === 'Health' ||
         article.category === 'Emergency' ||
@@ -508,34 +406,16 @@ class NewsService {
         article.category === 'Utilities' ||
         article.priority === 'urgent' ||
         article.priority === 'high' ||
-        // Also include by keywords in headlines
         /infrastructure|hospital|school|road|public|government|municipal|civic|health|education|transport|AIIMS|railway/i.test(article.headline)
       );
 
-      console.log(`📰 Filtered ${civicNews.length} civic news from ${result.news.length} total`);
-      console.log(`📰 Civic headlines: ${civicNews.slice(0, 3).map(n => n.headline).join(', ')}`);
-
-      // Use civic news first, then general news if needed
       const newsToUse = civicNews.length >= limit ? civicNews : [...civicNews, ...result.news];
       const topNews = newsToUse.slice(0, limit);
 
-      console.log(`📰 Returning ${topNews.length} top news (requested ${limit})`);
-      console.log(`📰 Top news categories: ${topNews.map(n => n.category).join(', ')}`);
-
-      return {
-        success: true,
-        news: topNews,
-        source: result.source
-      };
+      return { success: true, news: topNews, source: result.source };
     } catch (error) {
-      console.error('❌ Error fetching top news:', error);
-      console.log('📰 Fallback: returning placeholder news from catch block');
       const placeholderNews = this.getPlaceholderNews();
-      return { 
-        success: true, 
-        news: placeholderNews.slice(0, limit),
-        source: 'placeholder-error-fallback'
-      };
+      return { success: true, news: placeholderNews.slice(0, limit), source: 'placeholder-error-fallback' };
     }
   }
 
@@ -614,7 +494,6 @@ class NewsService {
   clearCache() {
     this.cache = null;
     this.lastFetchTime = null;
-    console.log('📰 News cache cleared');
   }
 }
 
