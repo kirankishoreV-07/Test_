@@ -283,29 +283,32 @@ const MultiStepSubmitComplaintScreen = ({ navigation }) => {
   // Progress indicator
   const renderProgressIndicator = () => {
     const steps = [
-      { number: 1, title: 'Issue Type', icon: 'list-outline' },
-      { number: 2, title: 'Details', icon: 'create-outline' },
-      { number: 3, title: 'Photo', icon: 'camera-outline' },
-      { number: 4, title: 'Success', icon: 'checkmark-circle-outline' }
+      { number: 1, title: 'Issue', icon: 'list' },
+      { number: 2, title: 'Details', icon: 'create' },
+      { number: 3, title: 'Photo', icon: 'camera' },
+      { number: 4, title: 'Done', icon: 'checkmark' }
     ];
 
     return (
       <View style={styles.progressContainer}>
         {steps.map((step, index) => (
           <React.Fragment key={step.number}>
-            <View style={[
-              styles.progressStep,
-              currentStep >= step.number && styles.progressStepActive,
-              currentStep === step.number && styles.progressStepCurrent
-            ]}>
-              <Ionicons
-                name={step.icon}
-                size={20}
-                color={currentStep >= step.number ? '#fff' : '#666'}
-              />
+            <View style={styles.progressStep}>
+              <View style={[
+                styles.stepIconContainer,
+                currentStep > step.number && styles.stepIconCompleted,
+                currentStep === step.number && styles.stepIconCurrent
+              ]}>
+                <Ionicons
+                  name={step.icon}
+                  size={18}
+                  color={currentStep === step.number ? '#fff' : (currentStep > step.number ? '#1A1A1A' : '#9CA3AF')}
+                />
+              </View>
               <Text style={[
                 styles.progressStepText,
-                currentStep >= step.number && styles.progressStepTextActive
+                currentStep === step.number && styles.progressStepTextCurrent,
+                currentStep > step.number && styles.progressStepTextCompleted
               ]}>
                 {step.title}
               </Text>
@@ -1700,41 +1703,65 @@ const styles = StyleSheet.create({
  },
  progressContainer: {
  flexDirection: 'row',
- alignItems: 'center',
+ alignItems: 'flex-start',
  justifyContent: 'space-between',
  paddingHorizontal: 20,
- paddingVertical: 20,
+ paddingVertical: 24,
  backgroundColor: '#fff',
- marginBottom: 10,
+ marginBottom: 8,
+ borderBottomWidth: 1,
+ borderBottomColor: '#F3F4F6',
  },
  progressStep: {
  alignItems: 'center',
- flex: 1,
+ width: 60,
  },
- progressStepActive: {
- opacity: 1,
+ stepIconContainer: {
+ width: 36,
+ height: 36,
+ borderRadius: 18,
+ justifyContent: 'center',
+ alignItems: 'center',
+ backgroundColor: '#F3F4F6',
+ borderWidth: 1,
+ borderColor: '#E5E7EB',
+ marginBottom: 8,
+ zIndex: 2,
  },
- progressStepCurrent: {
+ stepIconCurrent: {
  backgroundColor: '#1A1A1A',
- borderRadius: 20,
- paddingVertical: 8,
- paddingHorizontal: 12,
+ borderColor: '#1A1A1A',
+ shadowColor: '#1A1A1A',
+ shadowOffset: { width: 0, height: 2 },
+ shadowOpacity: 0.2,
+ shadowRadius: 4,
+ elevation: 3,
+ },
+ stepIconCompleted: {
+ backgroundColor: '#FFFFFF',
+ borderColor: '#1A1A1A',
  },
  progressStepText: {
- fontSize: 12,
- color: '#666',
- marginTop: 4,
+ fontSize: 11,
+ color: '#9CA3AF',
  textAlign: 'center',
+ fontWeight: '500',
  },
- progressStepTextActive: {
+ progressStepTextCurrent: {
  color: '#1A1A1A',
- fontWeight: 'bold',
+ fontWeight: '700',
+ },
+ progressStepTextCompleted: {
+ color: '#1A1A1A',
+ fontWeight: '600',
  },
  progressLine: {
  height: 2,
- backgroundColor: '#ddd',
- flex: 0.3,
- marginHorizontal: 10,
+ backgroundColor: '#E5E7EB',
+ flex: 1,
+ marginTop: 18,
+ marginHorizontal: -15,
+ zIndex: 1,
  },
  progressLineActive: {
  backgroundColor: '#1A1A1A',

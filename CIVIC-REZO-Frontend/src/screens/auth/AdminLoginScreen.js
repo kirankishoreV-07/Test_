@@ -80,7 +80,7 @@ const AdminLoginScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <View style={styles.brandContent}>
-          <Text style={styles.brandName}>CIVIC{'\n'}REZO</Text>
+          <Text style={styles.brandName}>CityZen</Text>
           <Text style={styles.brandSub}>{t('app.institutionalPortal').toUpperCase()}</Text>
         </View>
       </View>
